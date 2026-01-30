@@ -1,0 +1,6 @@
+# Clippy configuration for MuttonText
+# See: https://doc.rust-lang.org/clippy/configuration.html
+
+msrv = "1.70.0"
+cognitive-complexity-threshold = 25
+too-many-arguments-threshold = 7

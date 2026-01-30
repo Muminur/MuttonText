@@ -1,0 +1,128 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  create-release:
+    name: Create Release
+    runs-on: ubuntu-latest
+    outputs:
+      upload_url: ${{ steps.create_release.outputs.upload_url }}
+      version: ${{ steps.get_version.outputs.version }}
+    steps:
+      - name: Get version from tag
+        id: get_version
+        run: echo "version=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+
+      - name: Create Release
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ github.ref }}
+          release_name: Release ${{ github.ref }}
+          draft: false
+          prerelease: false
+
+  build-release:
+    name: Build Release - ${{ matrix.platform }}
+    needs: create-release
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            platform: linux
+            arch: x86_64
+            rust_target: x86_64-unknown-linux-gnu
+            artifact_name: MuttonText-${{ needs.create-release.outputs.version }}-linux-x86_64
+            artifact_patterns: |
+              src-tauri/target/release/bundle/appimage/*.AppImage
+              src-tauri/target/release/bundle/deb/*.deb
+          - os: macos-latest
+            platform: macos
+            arch: x86_64
+            rust_target: x86_64-apple-darwin
+            artifact_name: MuttonText-${{ needs.create-release.outputs.version }}-macos-x86_64
+            artifact_patterns: |
+              src-tauri/target/release/bundle/dmg/*.dmg
+          - os: macos-latest
+            platform: macos
+            arch: aarch64
+            rust_target: aarch64-apple-darwin
+            artifact_name: MuttonText-${{ needs.create-release.outputs.version }}-macos-aarch64
+            artifact_patterns: |
+              src-tauri/target/release/bundle/dmg/*.dmg
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install Rust stable
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.rust_target }}
+
+      - name: Install Linux dependencies
+        if: matrix.platform == 'linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libgtk-3-dev \
+            libwebkit2gtk-4.1-dev \
+            libayatana-appindicator3-dev \
+            librsvg2-dev \
+            libxdo-dev
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install frontend dependencies
+        run: npm ci
+
+      - name: Build application
+        run: npm run tauri build -- --target ${{ matrix.rust_target }}
+        env:
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+
+      - name: Upload AppImage (Linux)
+        if: matrix.platform == 'linux'
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ needs.create-release.outputs.upload_url }}
+          asset_path: src-tauri/target/release/bundle/appimage/mutton-text_${{ needs.create-release.outputs.version }}_amd64.AppImage
+          asset_name: MuttonText-${{ needs.create-release.outputs.version }}-linux-x86_64.AppImage
+          asset_content_type: application/octet-stream
+
+      - name: Upload .deb (Linux)
+        if: matrix.platform == 'linux'
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ needs.create-release.outputs.upload_url }}
+          asset_path: src-tauri/target/release/bundle/deb/mutton-text_${{ needs.create-release.outputs.version }}_amd64.deb
+          asset_name: MuttonText-${{ needs.create-release.outputs.version }}-linux-x86_64.deb
+          asset_content_type: application/vnd.debian.binary-package
+
+      - name: Upload .dmg (macOS)
+        if: matrix.platform == 'macos'
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ needs.create-release.outputs.upload_url }}
+          asset_path: src-tauri/target/release/bundle/dmg/MuttonText_${{ needs.create-release.outputs.version }}_${{ matrix.arch }}.dmg
+          asset_name: MuttonText-${{ needs.create-release.outputs.version }}-macos-${{ matrix.arch }}.dmg
+          asset_content_type: application/octet-stream

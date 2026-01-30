@@ -1,0 +1,39 @@
+[package]
+name = "muttontext"
+version = "0.1.0"
+description = "Cross-platform text snippet expansion tool"
+authors = ["MuttonText Contributors"]
+edition = "2021"
+
+[lib]
+name = "muttontext_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = [] }
+tauri-plugin-opener = "2"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+tokio = { version = "1", features = ["full"] }
+thiserror = "1"
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+uuid = { version = "1", features = ["v4", "serde"] }
+chrono = { version = "0.4", features = ["serde"] }
+regex = "1"
+rdev = "0.5"
+arboard = "3"
+dirs = "5"
+fs2 = "0.4"
+
+[dev-dependencies]
+tempfile = "3"
+
+# Code Coverage:
+# Use cargo-tarpaulin for Rust code coverage analysis
+# Install: cargo install cargo-tarpaulin
+# Run: cargo tarpaulin --out Html --output-dir coverage
+# Target coverage: lines 75%, branches 70%, functions 75%

@@ -1,0 +1,44 @@
+# Dependencies
+node_modules/
+
+# Build
+dist/
+src-tauri/target/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Environment
+.env
+.env.local
+
+# Coverage
+coverage/
+
+# Documentation and images - managed separately
+*.md
+*.png
+*.webp
+*.jpeg
+*.jpg
+!README.md
+
+# Playwright
+test-results/
+playwright-report/
+
+# OMC state
+.omc/
+
+# Claude local state
+.claude/
+
+# Windows reserved names
+nul
