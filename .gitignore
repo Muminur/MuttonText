@@ -30,6 +30,19 @@ coverage/
 *.jpg
 !README.md
 
+# Test files - kept locally only
+src-tauri/tests/
+src/__tests__/
+src/components/*/__tests__/
+vitest.config.ts
+src-tauri/benches/
+
+# CI workflows - managed separately
+.github/workflows/
+
+# Serena config
+.serena/
+
 # Playwright
 test-results/
 playwright-report/
