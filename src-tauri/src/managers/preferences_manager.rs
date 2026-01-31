@@ -86,6 +86,12 @@ impl PreferencesManager {
 
     /// Adds an app to the exclusion list. Returns error if already present.
     pub fn add_excluded_app(&mut self, app: String) -> Result<(), PreferencesError> {
+        const MAX_EXCLUDED_APPS: usize = 100;
+        if self.preferences.excluded_apps.len() >= MAX_EXCLUDED_APPS {
+            return Err(PreferencesError::Validation(
+                "Maximum of 100 excluded apps reached".to_string(),
+            ));
+        }
         if self.preferences.excluded_apps.iter().any(|a| a == &app) {
             return Err(PreferencesError::AppAlreadyExcluded(app));
         }
@@ -111,9 +117,19 @@ impl PreferencesManager {
                 "Backup interval must be greater than 0".to_string(),
             ));
         }
+        if prefs.backup_interval_hours > 8760 {
+            return Err(PreferencesError::Validation(
+                "Backup interval cannot exceed 8760 hours (1 year)".to_string(),
+            ));
+        }
         if prefs.max_backups == 0 {
             return Err(PreferencesError::Validation(
                 "Max backups must be greater than 0".to_string(),
+            ));
+        }
+        if prefs.max_backups > 1000 {
+            return Err(PreferencesError::Validation(
+                "Max backups cannot exceed 1000".to_string(),
             ));
         }
         Ok(())
@@ -237,5 +253,80 @@ mod tests {
 
         let err = PreferencesError::AppAlreadyExcluded("app".to_string());
         assert!(format!("{err}").contains("app"));
+    }
+
+    // ── Excluded Apps Limit ──────────────────────────────────────
+
+    #[test]
+    fn test_add_excluded_app_max_limit() {
+        let tmp = tempfile::tempdir().unwrap();
+        let path = tmp.path().join("prefs.json");
+        let mut mgr = PreferencesManager::new(path).unwrap();
+
+        // Add 100 apps (the limit)
+        for i in 0..100 {
+            mgr.add_excluded_app(format!("app{}", i)).unwrap();
+        }
+
+        // The 101st should fail
+        let result = mgr.add_excluded_app("app101".to_string());
+        assert!(result.is_err());
+        match result.unwrap_err() {
+            PreferencesError::Validation(msg) => {
+                assert!(msg.contains("100 excluded apps"));
+            }
+            _ => panic!("Expected Validation error"),
+        }
+    }
+
+    // ── Preferences Bounds ───────────────────────────────────────
+
+    #[test]
+    fn test_update_rejects_excessive_backup_interval() {
+        let tmp = tempfile::tempdir().unwrap();
+        let path = tmp.path().join("prefs.json");
+        let mut mgr = PreferencesManager::new(path).unwrap();
+
+        let mut prefs = Preferences::default();
+        prefs.backup_interval_hours = 8761; // Exceeds 8760 (1 year)
+        let result = mgr.update(prefs);
+        assert!(result.is_err());
+        match result.unwrap_err() {
+            PreferencesError::Validation(msg) => {
+                assert!(msg.contains("8760"));
+            }
+            _ => panic!("Expected Validation error"),
+        }
+    }
+
+    #[test]
+    fn test_update_rejects_excessive_max_backups() {
+        let tmp = tempfile::tempdir().unwrap();
+        let path = tmp.path().join("prefs.json");
+        let mut mgr = PreferencesManager::new(path).unwrap();
+
+        let mut prefs = Preferences::default();
+        prefs.max_backups = 1001; // Exceeds 1000
+        let result = mgr.update(prefs);
+        assert!(result.is_err());
+        match result.unwrap_err() {
+            PreferencesError::Validation(msg) => {
+                assert!(msg.contains("1000"));
+            }
+            _ => panic!("Expected Validation error"),
+        }
+    }
+
+    #[test]
+    fn test_update_accepts_max_valid_values() {
+        let tmp = tempfile::tempdir().unwrap();
+        let path = tmp.path().join("prefs.json");
+        let mut mgr = PreferencesManager::new(path).unwrap();
+
+        let mut prefs = Preferences::default();
+        prefs.backup_interval_hours = 8760; // Exactly at limit
+        prefs.max_backups = 1000; // Exactly at limit
+        let result = mgr.update(prefs);
+        assert!(result.is_ok());
     }
 }

@@ -92,6 +92,14 @@ pub fn import_combos(
     format: String,
     conflict_resolution: String,
 ) -> Result<ImportResult, CommandError> {
+    const MAX_IMPORT_SIZE: usize = 10 * 1024 * 1024; // 10 MB
+    if content.len() > MAX_IMPORT_SIZE {
+        return Err(CommandError {
+            code: "VALIDATION_ERROR".to_string(),
+            message: "Import content exceeds 10 MB limit".to_string(),
+        });
+    }
+
     let conflict = parse_conflict_resolution(&conflict_resolution)?;
     let fmt = if format == "auto" {
         ImportManager::detect_format(&content)?
@@ -116,6 +124,14 @@ pub fn import_combos(
 /// Preview what an import would produce.
 #[tauri::command]
 pub fn preview_import(content: String) -> Result<ImportPreview, CommandError> {
+    const MAX_IMPORT_SIZE: usize = 10 * 1024 * 1024; // 10 MB
+    if content.len() > MAX_IMPORT_SIZE {
+        return Err(CommandError {
+            code: "VALIDATION_ERROR".to_string(),
+            message: "Import content exceeds 10 MB limit".to_string(),
+        });
+    }
+
     Ok(ImportManager::preview_import(&content)?)
 }
 
@@ -136,12 +152,18 @@ pub fn create_backup(
     state: tauri::State<'_, super::AppState>,
     backup_state: tauri::State<'_, BackupState>,
 ) -> Result<BackupInfo, CommandError> {
-    let combo_mgr = state.combo_manager.lock().unwrap();
+    let combo_mgr = state.combo_manager.lock().map_err(|_| CommandError {
+        code: "INTERNAL_ERROR".to_string(),
+        message: "Lock poisoned".to_string(),
+    })?;
     let combos = combo_mgr.get_all_combos();
     let groups = combo_mgr.get_all_groups();
     let prefs = serde_json::json!({});
 
-    let backup_mgr = backup_state.backup_manager.lock().unwrap();
+    let backup_mgr = backup_state.backup_manager.lock().map_err(|_| CommandError {
+        code: "INTERNAL_ERROR".to_string(),
+        message: "Lock poisoned".to_string(),
+    })?;
     Ok(backup_mgr.create_backup(&combos, &groups, &prefs)?)
 }
 
@@ -151,7 +173,10 @@ pub fn restore_backup(
     backup_state: tauri::State<'_, BackupState>,
     backup_id: String,
 ) -> Result<serde_json::Value, CommandError> {
-    let backup_mgr = backup_state.backup_manager.lock().unwrap();
+    let backup_mgr = backup_state.backup_manager.lock().map_err(|_| CommandError {
+        code: "INTERNAL_ERROR".to_string(),
+        message: "Lock poisoned".to_string(),
+    })?;
     let data = backup_mgr.restore_backup(&backup_id)?;
     serde_json::to_value(&data).map_err(|e| CommandError {
         code: "SERIALIZATION_ERROR".to_string(),
@@ -164,7 +189,10 @@ pub fn restore_backup(
 pub fn list_backups(
     backup_state: tauri::State<'_, BackupState>,
 ) -> Result<Vec<BackupInfo>, CommandError> {
-    let backup_mgr = backup_state.backup_manager.lock().unwrap();
+    let backup_mgr = backup_state.backup_manager.lock().map_err(|_| CommandError {
+        code: "INTERNAL_ERROR".to_string(),
+        message: "Lock poisoned".to_string(),
+    })?;
     Ok(backup_mgr.list_backups()?)
 }
 
@@ -174,7 +202,10 @@ pub fn delete_backup(
     backup_state: tauri::State<'_, BackupState>,
     backup_id: String,
 ) -> Result<(), CommandError> {
-    let backup_mgr = backup_state.backup_manager.lock().unwrap();
+    let backup_mgr = backup_state.backup_manager.lock().map_err(|_| CommandError {
+        code: "INTERNAL_ERROR".to_string(),
+        message: "Lock poisoned".to_string(),
+    })?;
     Ok(backup_mgr.delete_backup(&backup_id)?)
 }
 
@@ -184,7 +215,10 @@ pub fn check_for_updates(
     update_state: tauri::State<'_, UpdateState>,
     latest: VersionInfo,
 ) -> Result<bool, CommandError> {
-    let mgr = update_state.update_manager.lock().unwrap();
+    let mgr = update_state.update_manager.lock().map_err(|_| CommandError {
+        code: "INTERNAL_ERROR".to_string(),
+        message: "Lock poisoned".to_string(),
+    })?;
     Ok(mgr.check_update_available(&latest))
 }
 
@@ -194,7 +228,10 @@ pub fn skip_update_version(
     update_state: tauri::State<'_, UpdateState>,
     version: String,
 ) -> Result<(), CommandError> {
-    let mut mgr = update_state.update_manager.lock().unwrap();
+    let mut mgr = update_state.update_manager.lock().map_err(|_| CommandError {
+        code: "INTERNAL_ERROR".to_string(),
+        message: "Lock poisoned".to_string(),
+    })?;
     mgr.skip_version(&version);
     Ok(())
 }
@@ -348,5 +385,43 @@ mod tests {
         )
         .unwrap();
         assert!(result.contains("sig"));
+    }
+
+    // ── Import Size Limit ────────────────────────────────────────
+
+    #[test]
+    fn test_import_combos_size_limit() {
+        let huge_content = "x".repeat(11 * 1024 * 1024); // 11 MB - exceeds 10 MB limit
+        let result = import_combos(
+            huge_content,
+            "muttonTextJson".to_string(),
+            "skip".to_string(),
+        );
+        assert!(result.is_err());
+        let err = result.unwrap_err();
+        assert_eq!(err.code, "VALIDATION_ERROR");
+        assert!(err.message.contains("10 MB limit"));
+    }
+
+    #[test]
+    fn test_preview_import_size_limit() {
+        let huge_content = "x".repeat(11 * 1024 * 1024); // 11 MB - exceeds 10 MB limit
+        let result = preview_import(huge_content);
+        assert!(result.is_err());
+        let err = result.unwrap_err();
+        assert_eq!(err.code, "VALIDATION_ERROR");
+        assert!(err.message.contains("10 MB limit"));
+    }
+
+    #[test]
+    fn test_import_combos_within_size_limit() {
+        let content = r#"{"combos":[],"groups":[]}"#;
+        // This is well within the 10 MB limit
+        let result = import_combos(
+            content.to_string(),
+            "muttonTextJson".to_string(),
+            "skip".to_string(),
+        );
+        assert!(result.is_ok());
     }
 }

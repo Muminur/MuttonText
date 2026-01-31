@@ -93,13 +93,27 @@ impl ExportManager {
 }
 
 /// Escape a field for CSV output. Quotes the field if it contains commas,
-/// quotes, or newlines.
+/// quotes, or newlines. Prevents CSV injection by prefixing dangerous characters.
 fn csv_escape(field: &str) -> String {
-    if field.contains(',') || field.contains('"') || field.contains('\n') {
+    // Prevent CSV injection - prefix dangerous characters with single quote
+    let needs_injection_protection = if let Some(first_char) = field.chars().next() {
+        first_char == '=' || first_char == '+' || first_char == '-' ||
+        first_char == '@' || first_char == '\t' || first_char == '\r'
+    } else {
+        false
+    };
+
+    let result = if field.contains(',') || field.contains('"') || field.contains('\n') {
         let escaped = field.replace('"', "\"\"");
         format!("\"{}\"", escaped)
     } else {
         field.to_string()
+    };
+
+    if needs_injection_protection {
+        format!("'{}", result)
+    } else {
+        result
     }
 }
 
@@ -204,6 +218,44 @@ mod tests {
     #[test]
     fn test_csv_escape_newline() {
         assert_eq!(csv_escape("line1\nline2"), "\"line1\nline2\"");
+    }
+
+    // ── CSV Injection Prevention ─────────────────────────────────
+
+    #[test]
+    fn test_csv_escape_formula_injection_equals() {
+        assert_eq!(csv_escape("=1+1"), "'=1+1");
+    }
+
+    #[test]
+    fn test_csv_escape_formula_injection_plus() {
+        assert_eq!(csv_escape("+1+1"), "'+1+1");
+    }
+
+    #[test]
+    fn test_csv_escape_formula_injection_minus() {
+        assert_eq!(csv_escape("-1-1"), "'-1-1");
+    }
+
+    #[test]
+    fn test_csv_escape_formula_injection_at() {
+        assert_eq!(csv_escape("@SUM(A1:A10)"), "'@SUM(A1:A10)");
+    }
+
+    #[test]
+    fn test_csv_escape_formula_injection_tab() {
+        assert_eq!(csv_escape("\tdata"), "'\tdata");
+    }
+
+    #[test]
+    fn test_csv_escape_formula_injection_carriage_return() {
+        assert_eq!(csv_escape("\rdata"), "'\rdata");
+    }
+
+    #[test]
+    fn test_csv_escape_formula_with_comma() {
+        // Should quote AND prefix with single quote
+        assert_eq!(csv_escape("=1,2"), "'\"=1,2\"");
     }
 
     // ── export_to_format ─────────────────────────────────────────

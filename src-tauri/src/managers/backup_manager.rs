@@ -19,6 +19,8 @@ pub enum BackupError {
     NotFound(String),
     #[error("Invalid backup file: {0}")]
     InvalidBackup(String),
+    #[error("Invalid backup ID: {0}")]
+    InvalidBackupId(String),
 }
 
 /// Information about a stored backup.
@@ -109,6 +111,11 @@ impl BackupManager {
 
     /// Restore a backup by its ID.
     pub fn restore_backup(&self, backup_id: &str) -> Result<BackupData, BackupError> {
+        // Validate backup_id to prevent path traversal
+        if !backup_id.chars().all(|c| c.is_alphanumeric() || c == '_' || c == '-') {
+            return Err(BackupError::InvalidBackupId(backup_id.to_string()));
+        }
+
         let filename = format!("{}.btbackup", backup_id);
         let path = self.backup_dir.join(&filename);
 
@@ -124,6 +131,10 @@ impl BackupManager {
     }
 
     /// List all available backups, sorted by timestamp descending (newest first).
+    ///
+    /// NOTE: This reads full backup files to extract metadata. This is acceptable
+    /// for moderate numbers of backups but could be optimized by storing metadata
+    /// separately if performance becomes an issue.
     pub fn list_backups(&self) -> Result<Vec<BackupInfo>, BackupError> {
         if !self.backup_dir.exists() {
             return Ok(Vec::new());
@@ -161,6 +172,11 @@ impl BackupManager {
 
     /// Delete a backup by its ID.
     pub fn delete_backup(&self, backup_id: &str) -> Result<(), BackupError> {
+        // Validate backup_id to prevent path traversal
+        if !backup_id.chars().all(|c| c.is_alphanumeric() || c == '_' || c == '-') {
+            return Err(BackupError::InvalidBackupId(backup_id.to_string()));
+        }
+
         let filename = format!("{}.btbackup", backup_id);
         let path = self.backup_dir.join(&filename);
 
@@ -366,6 +382,71 @@ mod tests {
     fn test_backup_error_display() {
         let err = BackupError::NotFound("test".to_string());
         assert_eq!(err.to_string(), "Backup not found: test");
+    }
+
+    // ── Backup ID Validation ─────────────────────────────────────
+
+    #[test]
+    fn test_restore_backup_invalid_id_with_path_traversal() {
+        let dir = TempDir::new().unwrap();
+        let mgr = make_manager(&dir);
+        let result = mgr.restore_backup("../etc/passwd");
+        assert!(result.is_err());
+        match result.unwrap_err() {
+            BackupError::InvalidBackupId(_) => {},
+            _ => panic!("Expected InvalidBackupId error"),
+        }
+    }
+
+    #[test]
+    fn test_restore_backup_invalid_id_with_special_chars() {
+        let dir = TempDir::new().unwrap();
+        let mgr = make_manager(&dir);
+        let result = mgr.restore_backup("backup;rm -rf /");
+        assert!(result.is_err());
+        match result.unwrap_err() {
+            BackupError::InvalidBackupId(_) => {},
+            _ => panic!("Expected InvalidBackupId error"),
+        }
+    }
+
+    #[test]
+    fn test_restore_backup_valid_id_with_underscores_hyphens() {
+        let dir = TempDir::new().unwrap();
+        let mgr = make_manager(&dir);
+        // Valid IDs with underscores and hyphens should pass validation
+        // (but will fail with NotFound since the file doesn't exist)
+        let result = mgr.restore_backup("20240101_120000_000");
+        assert!(result.is_err());
+        match result.unwrap_err() {
+            BackupError::NotFound(_) => {},
+            _ => panic!("Expected NotFound error, not InvalidBackupId"),
+        }
+    }
+
+    #[test]
+    fn test_delete_backup_invalid_id_with_path_traversal() {
+        let dir = TempDir::new().unwrap();
+        let mgr = make_manager(&dir);
+        let result = mgr.delete_backup("../etc/passwd");
+        assert!(result.is_err());
+        match result.unwrap_err() {
+            BackupError::InvalidBackupId(_) => {},
+            _ => panic!("Expected InvalidBackupId error"),
+        }
+    }
+
+    #[test]
+    fn test_delete_backup_valid_id_format() {
+        let dir = TempDir::new().unwrap();
+        let mgr = make_manager(&dir);
+        // Valid ID format should pass validation (but NotFound since file doesn't exist)
+        let result = mgr.delete_backup("backup-2024_01_01");
+        assert!(result.is_err());
+        match result.unwrap_err() {
+            BackupError::NotFound(_) => {},
+            _ => panic!("Expected NotFound error, not InvalidBackupId"),
+        }
     }
 
     // ── Serialization ────────────────────────────────────────────
