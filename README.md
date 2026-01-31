@@ -125,10 +125,9 @@ npm run tauri build
 
 ## Documentation
 
-- [PLANNING.md](PLANNING.md) - Project vision and architecture
+
 - [CONTRIBUTING.md](CONTRIBUTING.md) - Development guidelines
 - [CHANGELOG.md](CHANGELOG.md) - Version history
-- [CLAUDE.md](CLAUDE.md) - AI-assisted development guide
 
 ## Contributing
 
