@@ -43,6 +43,10 @@ impl From<ComboManagerError> for CommandError {
                 code: "STORAGE_ERROR".to_string(),
                 message: err.to_string(),
             },
+            ComboManagerError::ValidationMessage(_) => CommandError {
+                code: "VALIDATION_ERROR".to_string(),
+                message: err.to_string(),
+            },
         }
     }
 }

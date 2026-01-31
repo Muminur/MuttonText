@@ -112,7 +112,7 @@ pub fn migrate_combo_library(
 }
 
 /// Performs a single migration step from `version` to `version + 1`.
-fn migrate_combo_library_step(value: Value, version: u32) -> Result<Value, StorageError> {
+fn migrate_combo_library_step(_value: Value, version: u32) -> Result<Value, StorageError> {
     match version {
         // Future migrations go here, e.g.:
         // 1 => migrate_v1_to_v2(value),

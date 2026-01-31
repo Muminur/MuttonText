@@ -360,7 +360,8 @@ mod tests {
 
     fn make_manager() -> ComboManager {
         let tmp = tempdir().expect("tempdir");
-        let path = tmp.into_path().join("combos.json");
+        let path = tmp.path().join("combos.json");
+        let _ = tmp.keep();
         let storage = ComboStorage::new(path);
         let mut library = ComboLibrary::new("1.0");
         let group = Group::new("Default");

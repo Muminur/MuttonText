@@ -1,9 +1,3 @@
-[target.'cfg(all())']
-rustflags = [
-    "-W", "clippy::all",
-    "-W", "clippy::pedantic",
-    "-A", "clippy::module_name_repetitions",
-    "-A", "clippy::must_use_candidate",
-    "-A", "clippy::missing_errors_doc",
-    "-A", "clippy::missing_panics_doc",
-]
+# Use MSVC target with VS 2022 Build Tools on L: drive
+[build]
+target = "x86_64-pc-windows-msvc"

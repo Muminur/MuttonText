@@ -104,7 +104,7 @@ pub fn migrate_preferences(
 }
 
 /// Performs a single preferences migration step.
-fn migrate_preferences_step(value: Value, version: u32) -> Result<Value, StorageError> {
+fn migrate_preferences_step(_value: Value, version: u32) -> Result<Value, StorageError> {
     match version {
         // Future migrations go here.
         _ => Err(StorageError::MigrationFailed(format!(
