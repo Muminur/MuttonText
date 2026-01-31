@@ -29,6 +29,8 @@ coverage/
 *.jpeg
 *.jpg
 !README.md
+!CHANGELOG.md
+!CONTRIBUTING.md
 
 # Test files - kept locally only
 src-tauri/tests/
