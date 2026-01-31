@@ -38,14 +38,7 @@ impl From<crate::managers::export_manager::ExportError> for CommandError {
     }
 }
 
-impl From<crate::managers::backup_manager::BackupError> for CommandError {
-    fn from(err: crate::managers::backup_manager::BackupError) -> Self {
-        CommandError {
-            code: "BACKUP_ERROR".to_string(),
-            message: err.to_string(),
-        }
-    }
-}
+// From<BackupError> for CommandError is now in error.rs (MT-1106)
 
 fn parse_import_format(format: &str) -> Result<ImportFormat, CommandError> {
     match format {
@@ -330,7 +323,7 @@ mod tests {
     fn test_backup_error_to_command_error() {
         let err: CommandError =
             crate::managers::backup_manager::BackupError::NotFound("test".to_string()).into();
-        assert_eq!(err.code, "BACKUP_ERROR");
+        assert_eq!(err.code, "BACKUP_NOT_FOUND");
     }
 
     // ── Import/Export commands (no Tauri state) ──────────────────

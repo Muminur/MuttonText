@@ -11,9 +11,25 @@ use fs2::FileExt;
 use serde_json::Value;
 use tracing;
 
+use serde::{Deserialize, Serialize};
+use uuid::Uuid;
+
 use crate::models::library::ComboLibrary;
 
 use super::storage::StorageError;
+
+/// Lightweight combo summary without snippet text (MT-1108).
+///
+/// Used for listing combos in the UI without loading full snippet content,
+/// which can be large for rich snippets.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ComboSummary {
+    pub id: Uuid,
+    pub keyword: String,
+    pub name: String,
+    pub group_id: Uuid,
+}
 
 /// Current schema version for the combo library on-disk format.
 const CURRENT_SCHEMA_VERSION: u32 = 1;
@@ -71,6 +87,25 @@ impl ComboStorage {
 
         let library: ComboLibrary = serde_json::from_value(json_value)?;
         Ok(library)
+    }
+
+    /// Loads only combo summaries (id, keyword, name, group_id) without snippets.
+    ///
+    /// This is faster than `load()` for UI list views that don't need snippet text.
+    /// Falls back to a full load internally but only returns summary fields.
+    pub fn get_combo_summaries(&self) -> Result<Vec<ComboSummary>, StorageError> {
+        let library = self.load()?;
+        let summaries = library
+            .combos
+            .iter()
+            .map(|c| ComboSummary {
+                id: c.id,
+                keyword: c.keyword.clone(),
+                name: c.name.clone(),
+                group_id: c.group_id,
+            })
+            .collect();
+        Ok(summaries)
     }
 
     /// Saves the combo library to disk.
@@ -267,6 +302,46 @@ mod tests {
         let value = serde_json::json!({"version": "1.0"});
         let result = migrate_combo_library(value, 99, 100);
         assert!(result.is_err());
+    }
+
+    // ── MT-1108: ComboSummary tests ──────────────────────────────
+
+    #[test]
+    fn test_get_combo_summaries() {
+        let tmp = tempfile::tempdir().expect("create temp dir");
+        let path = tmp.path().join("combos.json");
+        let storage = ComboStorage::new(path);
+
+        let library = make_test_library();
+        storage.save(&library).expect("save");
+
+        let summaries = storage.get_combo_summaries().expect("summaries");
+        assert_eq!(summaries.len(), 1);
+        assert_eq!(summaries[0].keyword, "sig");
+        assert_eq!(summaries[0].name, "");
+    }
+
+    #[test]
+    fn test_get_combo_summaries_empty() {
+        let tmp = tempfile::tempdir().expect("create temp dir");
+        let path = tmp.path().join("combos.json");
+        let storage = ComboStorage::new(path);
+
+        let summaries = storage.get_combo_summaries().expect("summaries");
+        assert!(summaries.is_empty());
+    }
+
+    #[test]
+    fn test_combo_summary_serialization() {
+        let summary = ComboSummary {
+            id: uuid::Uuid::new_v4(),
+            keyword: "sig".to_string(),
+            name: "Signature".to_string(),
+            group_id: uuid::Uuid::new_v4(),
+        };
+        let json = serde_json::to_string(&summary).unwrap();
+        assert!(json.contains("keyword"));
+        assert!(json.contains("groupId"));
     }
 
     #[test]

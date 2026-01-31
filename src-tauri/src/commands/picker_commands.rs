@@ -8,6 +8,52 @@ use crate::models::combo::Combo;
 use super::error::CommandError;
 use super::AppState;
 
+/// Maximum number of search results returned.
+const MAX_SEARCH_RESULTS: usize = 50;
+
+/// Cached search results to avoid re-scoring on repeated queries (MT-1109).
+pub struct SearchCache {
+    /// The last query string.
+    last_query: String,
+    /// Cached results for the last query.
+    last_results: Vec<ComboSearchResult>,
+    /// Generation counter; incremented when combos change.
+    generation: u64,
+}
+
+impl SearchCache {
+    pub fn new() -> Self {
+        Self {
+            last_query: String::new(),
+            last_results: Vec::new(),
+            generation: 0,
+        }
+    }
+
+    /// Invalidate the cache (call when combos are added/removed/modified).
+    pub fn invalidate(&mut self) {
+        self.generation += 1;
+        self.last_query.clear();
+        self.last_results.clear();
+    }
+
+    /// Check if the cache has a valid result for the given query and generation.
+    pub fn get(&self, query: &str, generation: u64) -> Option<&[ComboSearchResult]> {
+        if self.generation == generation && self.last_query == query && !query.is_empty() {
+            Some(&self.last_results)
+        } else {
+            None
+        }
+    }
+
+    /// Store results in the cache.
+    pub fn set(&mut self, query: String, results: Vec<ComboSearchResult>, generation: u64) {
+        self.last_query = query;
+        self.last_results = results;
+        self.generation = generation;
+    }
+}
+
 /// Opens or shows the picker window.
 #[tauri::command]
 pub fn open_picker_window(app: AppHandle) -> Result<(), CommandError> {
@@ -194,5 +240,70 @@ mod tests {
     fn test_picker_commands_module_compiles() {
         // Basic compilation test
         assert!(true);
+    }
+
+    // ── MT-1109: SearchCache tests ───────────────────────────────
+
+    #[test]
+    fn test_search_cache_new_is_empty() {
+        let cache = SearchCache::new();
+        assert!(cache.get("test", 0).is_none());
+    }
+
+    #[test]
+    fn test_search_cache_set_and_get() {
+        use crate::models::combo::ComboBuilder;
+        use crate::models::matching::MatchingMode;
+
+        let mut cache = SearchCache::new();
+        let results = vec![ComboSearchResult {
+            combo: ComboBuilder::new()
+                .name("T".to_string())
+                .keyword("tt".to_string())
+                .snippet("s".to_string())
+                .group_id(Uuid::new_v4())
+                .matching_mode(MatchingMode::Strict)
+                .build()
+                .unwrap(),
+            group_name: "G".to_string(),
+        }];
+        cache.set("hello".to_string(), results.clone(), 0);
+        let cached = cache.get("hello", 0);
+        assert!(cached.is_some());
+        assert_eq!(cached.unwrap().len(), 1);
+    }
+
+    #[test]
+    fn test_search_cache_miss_on_different_query() {
+        let mut cache = SearchCache::new();
+        cache.set("hello".to_string(), vec![], 0);
+        assert!(cache.get("world", 0).is_none());
+    }
+
+    #[test]
+    fn test_search_cache_miss_on_different_generation() {
+        let mut cache = SearchCache::new();
+        cache.set("hello".to_string(), vec![], 0);
+        assert!(cache.get("hello", 1).is_none());
+    }
+
+    #[test]
+    fn test_search_cache_invalidate() {
+        let mut cache = SearchCache::new();
+        cache.set("hello".to_string(), vec![], 0);
+        cache.invalidate();
+        assert!(cache.get("hello", 0).is_none());
+    }
+
+    #[test]
+    fn test_search_cache_empty_query_never_cached() {
+        let mut cache = SearchCache::new();
+        cache.set(String::new(), vec![], 0);
+        assert!(cache.get("", 0).is_none());
+    }
+
+    #[test]
+    fn test_max_search_results_constant() {
+        assert_eq!(MAX_SEARCH_RESULTS, 50);
     }
 }

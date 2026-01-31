@@ -151,6 +151,7 @@ export function ComboList() {
             value={searchQuery}
             onChange={(e) => handleSearchChange(e.target.value)}
             className="w-full pl-10 pr-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            aria-label="Search combos"
           />
         </div>
       </div>
@@ -214,6 +215,8 @@ export function ComboList() {
             <div
               ref={parentRef}
               className="flex-1 overflow-auto"
+              role="list"
+              aria-label="Combos list"
             >
               <div
                 style={{

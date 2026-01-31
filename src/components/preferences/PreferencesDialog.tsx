@@ -116,11 +116,15 @@ export const PreferencesDialog: React.FC<PreferencesDialogProps> = ({ isOpen, on
         {/* Body */}
         <div className="flex flex-1 overflow-hidden">
           {/* Tab sidebar */}
-          <nav className="w-40 border-r bg-gray-50 py-2">
+          <nav className="w-40 border-r bg-gray-50 py-2" role="tablist" aria-label="Preference categories" aria-orientation="vertical">
             {TABS.map((tab) => (
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
+                role="tab"
+                aria-selected={activeTab === tab.id}
+                aria-controls={`tabpanel-${tab.id}`}
+                id={`tab-${tab.id}`}
                 className={`block w-full px-4 py-2 text-left text-sm transition-colors ${
                   activeTab === tab.id
                     ? "bg-blue-50 font-medium text-blue-700"
@@ -133,7 +137,7 @@ export const PreferencesDialog: React.FC<PreferencesDialogProps> = ({ isOpen, on
           </nav>
 
           {/* Tab content */}
-          <div className="flex-1 overflow-y-auto p-6">
+          <div className="flex-1 overflow-y-auto p-6" role="tabpanel" id={`tabpanel-${activeTab}`} aria-labelledby={`tab-${activeTab}`}>
             {loading ? (
               <p className="text-sm text-gray-500">Loading preferences...</p>
             ) : (

@@ -136,7 +136,7 @@ export function PickerWindow() {
   );
 
   return (
-    <div className="flex flex-col h-screen bg-white">
+    <div className="flex flex-col h-screen bg-white" role="dialog" aria-label="Quick combo picker">
       {/* Search Header */}
       <div className="flex-shrink-0 p-4 border-b bg-gray-50">
         <div className="relative">
@@ -151,6 +151,9 @@ export function PickerWindow() {
             className="w-full pl-10 pr-10 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-base"
             autoComplete="off"
             spellCheck={false}
+            aria-label="Search for a combo"
+            aria-controls="picker-results"
+            aria-activedescendant={results.length > 0 ? `picker-result-${selectedIndex}` : undefined}
           />
           {query && (
             <button
@@ -214,7 +217,7 @@ export function PickerWindow() {
         )}
 
         {!loading && !error && results.length > 0 && (
-          <div className="divide-y divide-gray-100">
+          <div className="divide-y divide-gray-100" role="listbox" id="picker-results" aria-label="Search results">
             {results.map((combo, index) => (
               <SearchResultItem
                 key={combo.id}

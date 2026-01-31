@@ -65,7 +65,7 @@ export const GroupList: React.FC<GroupListProps> = ({
   };
 
   return (
-    <div className="space-y-1" data-testid="group-list">
+    <div className="space-y-1" data-testid="group-list" role="tree" aria-label="Groups">
       {/* "All Combos" virtual group - not draggable */}
       <div
         className={`cursor-pointer rounded px-3 py-2 ${
@@ -74,7 +74,11 @@ export const GroupList: React.FC<GroupListProps> = ({
             : "hover:bg-gray-200"
         }`}
         onClick={() => onSelectGroup(null)}
+        onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onSelectGroup(null); } }}
         data-testid="all-combos-group"
+        role="treeitem"
+        aria-selected={selectedGroupId === null}
+        tabIndex={0}
       >
         <div className="flex items-center justify-between">
           <span className="text-sm font-medium">All Combos</span>

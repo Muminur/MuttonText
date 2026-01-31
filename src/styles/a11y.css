@@ -1,0 +1,123 @@
+/*
+ * Accessibility styles for MuttonText
+ * WCAG AA compliant colors and focus indicators
+ */
+
+:root {
+  /* Accessible text colors - all meet WCAG AA 4.5:1 against white */
+  --a11y-text-primary: #1a1a1a;       /* ~16:1 */
+  --a11y-text-secondary: #4a4a4a;     /* ~8.5:1 */
+  --a11y-text-muted: #6b6b6b;         /* ~5.0:1 */
+  --a11y-text-on-primary: #ffffff;
+
+  /* Accessible brand colors */
+  --a11y-primary: #1d4ed8;            /* blue-700, 6.5:1 on white */
+  --a11y-primary-hover: #1e40af;      /* blue-800 */
+  --a11y-error: #b91c1c;              /* red-700, 6.0:1 on white */
+  --a11y-success: #15803d;            /* green-700, 5.0:1 on white */
+  --a11y-warning: #a16207;            /* yellow-700, 4.6:1 on white */
+
+  /* Focus ring */
+  --a11y-focus-ring-color: #2563eb;
+  --a11y-focus-ring-width: 2px;
+  --a11y-focus-ring-offset: 2px;
+
+  /* Surfaces */
+  --a11y-surface: #ffffff;
+  --a11y-surface-raised: #f9fafb;
+  --a11y-border: #d1d5db;
+}
+
+/* Focus-visible outlines for keyboard navigation */
+*:focus-visible {
+  outline: var(--a11y-focus-ring-width) solid var(--a11y-focus-ring-color);
+  outline-offset: var(--a11y-focus-ring-offset);
+  border-radius: 2px;
+}
+
+/* Remove default focus ring for mouse users */
+*:focus:not(:focus-visible) {
+  outline: none;
+}
+
+/* Skip-to-content link (visually hidden until focused) */
+.skip-to-content {
+  position: absolute;
+  left: -9999px;
+  top: 0;
+  z-index: 9999;
+  padding: 0.5rem 1rem;
+  background: var(--a11y-primary);
+  color: var(--a11y-text-on-primary);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.skip-to-content:focus {
+  left: 0;
+}
+
+/* Visually hidden but accessible to screen readers */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+}
+
+/* High contrast mode support */
+@media (forced-colors: active) {
+  *:focus-visible {
+    outline: 2px solid Highlight;
+    outline-offset: 2px;
+  }
+
+  button,
+  [role="button"],
+  [role="tab"],
+  [role="menuitem"] {
+    border: 1px solid ButtonText;
+  }
+
+  [aria-selected="true"],
+  [aria-current="true"] {
+    border: 2px solid Highlight;
+    forced-color-adjust: none;
+  }
+
+  a {
+    color: LinkText;
+  }
+}
+
+/* Reduced motion preference */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Minimum touch target size (44x44px) for interactive elements */
+@media (pointer: coarse) {
+  button,
+  [role="button"],
+  [role="tab"],
+  [role="menuitem"],
+  [role="treeitem"],
+  [role="option"],
+  input[type="checkbox"],
+  input[type="radio"] {
+    min-height: 44px;
+    min-width: 44px;
+  }
+}

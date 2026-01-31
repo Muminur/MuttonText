@@ -352,6 +352,54 @@ impl ComboManager {
         Ok(())
     }
 
+    /// Shrinks internal collections to fit their contents, releasing unused
+    /// allocated memory (MT-1110).
+    pub fn compact(&mut self) {
+        self.library.combos.shrink_to_fit();
+        self.library.groups.shrink_to_fit();
+        tracing::debug!(
+            "ComboManager compacted: {} combos, {} groups",
+            self.library.combos.len(),
+            self.library.groups.len(),
+        );
+    }
+
+    /// Returns an approximate estimate of memory usage in bytes (MT-1110).
+    ///
+    /// This is a rough estimate based on the sizes of stored strings and
+    /// struct overhead. It does not account for allocator overhead or
+    /// alignment padding.
+    pub fn memory_usage_estimate(&self) -> usize {
+        let combo_size: usize = self
+            .library
+            .combos
+            .iter()
+            .map(|c| {
+                std::mem::size_of::<Combo>()
+                    + c.keyword.capacity()
+                    + c.snippet.capacity()
+                    + c.name.capacity()
+                    + c.description.capacity()
+            })
+            .sum();
+
+        let group_size: usize = self
+            .library
+            .groups
+            .iter()
+            .map(|g| {
+                std::mem::size_of::<crate::models::group::Group>()
+                    + g.name.capacity()
+                    + g.description.capacity()
+            })
+            .sum();
+
+        let vec_overhead = std::mem::size_of::<Vec<Combo>>()
+            + std::mem::size_of::<Vec<crate::models::group::Group>>();
+
+        combo_size + group_size + vec_overhead
+    }
+
     /// Provides mutable access to the library (for testing only).
     #[cfg(test)]
     pub fn library_mut_for_testing(&mut self) -> &mut ComboLibrary {
@@ -633,6 +681,59 @@ mod tests {
         // Should still have exactly one "Default" group
         let default_count = mgr.get_all_groups().iter().filter(|g| g.name == "Default").count();
         assert_eq!(default_count, 1);
+    }
+
+    // ── MT-1110: Memory optimization tests ─────────────────────
+
+    #[test]
+    fn test_compact() {
+        let mut mgr = make_manager();
+        let gid = default_group_id(&mgr);
+        for i in 0..10 {
+            mgr.create_combo(
+                format!("Combo {}", i),
+                format!("kw{:02}", i),
+                format!("Snippet {}", i),
+                gid,
+                MatchingMode::Strict,
+                false,
+            )
+            .unwrap();
+        }
+        // Delete half
+        let combos = mgr.get_all_combos();
+        for combo in combos.iter().take(5) {
+            mgr.delete_combo(combo.id).unwrap();
+        }
+        // Compact should not panic
+        mgr.compact();
+        assert_eq!(mgr.get_all_combos().len(), 5);
+    }
+
+    #[test]
+    fn test_memory_usage_estimate() {
+        let mgr = make_manager();
+        let estimate = mgr.memory_usage_estimate();
+        // Should be non-zero (at least the Default group exists)
+        assert!(estimate > 0);
+    }
+
+    #[test]
+    fn test_memory_usage_grows_with_combos() {
+        let mut mgr = make_manager();
+        let gid = default_group_id(&mgr);
+        let before = mgr.memory_usage_estimate();
+        mgr.create_combo(
+            "Big".into(),
+            "big".into(),
+            "x".repeat(10000),
+            gid,
+            MatchingMode::Strict,
+            false,
+        )
+        .unwrap();
+        let after = mgr.memory_usage_estimate();
+        assert!(after > before);
     }
 
     #[test]

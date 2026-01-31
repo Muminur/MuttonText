@@ -32,6 +32,7 @@ pub struct MatchResult {
 /// Checks if `buffer` ends with `keyword` preceded by a word boundary.
 ///
 /// Word boundaries: start of buffer, space, tab, newline, or punctuation.
+#[inline]
 fn is_strict_match(buffer: &str, keyword: &str, case_sensitive: bool) -> bool {
     if buffer.is_empty() || keyword.is_empty() {
         return false;
@@ -54,11 +55,14 @@ fn is_strict_match(buffer: &str, keyword: &str, case_sensitive: bool) -> bool {
         return true;
     }
 
-    let preceding_char = buf[..prefix_len].chars().last().unwrap();
-    is_word_boundary(preceding_char)
+    match buf[..prefix_len].chars().last() {
+        Some(c) => is_word_boundary(c),
+        None => true, // shouldn't happen given prefix_len > 0, but safe default
+    }
 }
 
 /// Checks if `buffer` simply ends with `keyword` (no boundary check).
+#[inline]
 fn is_loose_match(buffer: &str, keyword: &str, case_sensitive: bool) -> bool {
     if buffer.is_empty() || keyword.is_empty() {
         return false;
@@ -72,6 +76,7 @@ fn is_loose_match(buffer: &str, keyword: &str, case_sensitive: bool) -> bool {
 }
 
 /// Returns true if the character is a word boundary.
+#[inline]
 fn is_word_boundary(c: char) -> bool {
     c.is_whitespace() || c.is_ascii_punctuation()
 }
@@ -101,6 +106,8 @@ struct ComboEntry {
     keyword: String,
     snippet: String,
     case_sensitive: bool,
+    /// Pre-computed keyword length in bytes (MT-1107).
+    keyword_byte_len: usize,
 }
 
 impl MatcherEngine {
@@ -122,13 +129,14 @@ impl MatcherEngine {
         self.max_keyword_len = 0;
 
         for combo in combos.iter().filter(|c| c.enabled) {
+            let kw_len = combo.keyword.len();
             let entry = ComboEntry {
                 id: combo.id,
                 keyword: combo.keyword.clone(),
                 snippet: combo.snippet.clone(),
                 case_sensitive: combo.case_sensitive,
+                keyword_byte_len: kw_len,
             };
-            let kw_len = combo.keyword.len();
             if kw_len > self.max_keyword_len {
                 self.max_keyword_len = kw_len;
             }
@@ -181,6 +189,7 @@ impl MatcherEngine {
     ///
     /// Returns `None` if paused, buffer is empty, or no match is found.
     /// Optionally checks the current app against the exclusion list.
+    #[inline]
     pub fn find_match(&self, buffer: &str, current_app: Option<&str>) -> Option<MatchResult> {
         if self.is_paused || buffer.is_empty() {
             return None;
@@ -206,7 +215,7 @@ impl MatcherEngine {
                         combo_id: entry.id,
                         keyword: entry.keyword.clone(),
                         snippet: entry.snippet.clone(),
-                        keyword_len: entry.keyword.len(),
+                        keyword_len: entry.keyword_byte_len,
                     });
                 }
             }
@@ -223,7 +232,7 @@ impl MatcherEngine {
                         combo_id: entry.id,
                         keyword: entry.keyword.clone(),
                         snippet: entry.snippet.clone(),
-                        keyword_len: entry.keyword.len(),
+                        keyword_len: entry.keyword_byte_len,
                     });
                 }
             }

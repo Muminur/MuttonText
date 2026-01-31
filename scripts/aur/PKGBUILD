@@ -1,0 +1,36 @@
+# Maintainer: MuttonText Team
+pkgname=muttontext
+pkgver=1.0.0
+pkgrel=1
+pkgdesc="A fast, cross-platform text expansion application"
+arch=('x86_64')
+url="https://github.com/muttontext/muttontext"
+license=('MIT')
+depends=('webkit2gtk-4.1' 'gtk3' 'libayatana-appindicator')
+makedepends=('rust' 'cargo' 'nodejs' 'npm' 'webkit2gtk-4.1')
+source=("$pkgname-$pkgver.tar.gz::$url/archive/v$pkgver.tar.gz")
+sha256sums=('SKIP')
+
+build() {
+  cd "$srcdir/$pkgname-$pkgver"
+  npm install
+  npm run tauri build -- --bundles none
+}
+
+package() {
+  cd "$srcdir/$pkgname-$pkgver"
+  install -Dm755 "src-tauri/target/release/mutton-text" "$pkgdir/usr/bin/muttontext"
+  install -Dm644 "src-tauri/icons/128x128.png" "$pkgdir/usr/share/pixmaps/muttontext.png"
+
+  # Desktop entry
+  install -Dm644 /dev/stdin "$pkgdir/usr/share/applications/muttontext.desktop" <<EOF
+[Desktop Entry]
+Name=MuttonText
+Comment=Fast cross-platform text expansion
+Exec=muttontext
+Icon=muttontext
+Terminal=false
+Type=Application
+Categories=Utility;TextTools;
+EOF
+}

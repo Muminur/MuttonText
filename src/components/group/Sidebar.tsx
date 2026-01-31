@@ -57,7 +57,7 @@ export const Sidebar: React.FC = () => {
 
   return (
     <>
-      <div className="flex h-full flex-col bg-gray-50">
+      <div className="flex h-full flex-col bg-gray-50" role="navigation" aria-label="Group navigation">
         {/* Group list area */}
         <div className="flex-1 overflow-auto p-2" data-testid="group-list-area">
           <GroupList

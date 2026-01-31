@@ -1,7 +1,8 @@
 // Shared utilities
-// Submodules will be added as features are implemented:
-// pub mod paths;
-// pub mod errors;
+
+pub mod memory;
+
+pub use memory::{PooledBuffer, clear_caches};
 
 #[cfg(test)]
 mod tests {

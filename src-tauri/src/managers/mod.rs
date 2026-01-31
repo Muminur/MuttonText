@@ -57,6 +57,9 @@ pub use export_manager::ExportManager;
 pub use backup_manager::BackupManager;
 pub use update_manager::UpdateManager;
 
+// Milestone 11: Bug fixes and performance
+pub mod bug_fixes;
+
 #[cfg(test)]
 mod tests {
     #[test]

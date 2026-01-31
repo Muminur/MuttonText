@@ -22,15 +22,17 @@ interface MenuBarProps {
  */
 export const MenuBar: React.FC<MenuBarProps> = ({ onOpenPreferences, onOpenImport, onOpenExport, onOpenBackups }) => {
   return (
-    <div className="flex h-8 items-center gap-1 border-b bg-gray-100 px-2">
+    <div className="flex h-8 items-center gap-1 border-b bg-gray-100 px-2" role="menubar" aria-label="Main menu">
       {/* File Menu */}
       <DropdownMenu.Root>
         <DropdownMenu.Trigger asChild>
           <button
             className="flex items-center gap-1 rounded px-2 py-1 text-sm hover:bg-gray-200"
             data-testid="file-menu-trigger"
+            role="menuitem"
+            aria-haspopup="true"
           >
-            <FileIcon size={14} />
+            <FileIcon size={14} aria-hidden="true" />
             File
             <ChevronDownIcon size={12} />
           </button>
@@ -96,8 +98,10 @@ export const MenuBar: React.FC<MenuBarProps> = ({ onOpenPreferences, onOpenImpor
           <button
             className="flex items-center gap-1 rounded px-2 py-1 text-sm hover:bg-gray-200"
             data-testid="edit-menu-trigger"
+            role="menuitem"
+            aria-haspopup="true"
           >
-            <EditIcon size={14} />
+            <EditIcon size={14} aria-hidden="true" />
             Edit
             <ChevronDownIcon size={12} />
           </button>
@@ -148,8 +152,10 @@ export const MenuBar: React.FC<MenuBarProps> = ({ onOpenPreferences, onOpenImpor
           <button
             className="flex items-center gap-1 rounded px-2 py-1 text-sm hover:bg-gray-200"
             data-testid="combos-menu-trigger"
+            role="menuitem"
+            aria-haspopup="true"
           >
-            <ListIcon size={14} />
+            <ListIcon size={14} aria-hidden="true" />
             Combos
             <ChevronDownIcon size={12} />
           </button>
@@ -181,8 +187,10 @@ export const MenuBar: React.FC<MenuBarProps> = ({ onOpenPreferences, onOpenImpor
           <button
             className="flex items-center gap-1 rounded px-2 py-1 text-sm hover:bg-gray-200"
             data-testid="groups-menu-trigger"
+            role="menuitem"
+            aria-haspopup="true"
           >
-            <FolderIcon size={14} />
+            <FolderIcon size={14} aria-hidden="true" />
             Groups
             <ChevronDownIcon size={12} />
           </button>
@@ -208,8 +216,10 @@ export const MenuBar: React.FC<MenuBarProps> = ({ onOpenPreferences, onOpenImpor
           <button
             className="flex items-center gap-1 rounded px-2 py-1 text-sm hover:bg-gray-200"
             data-testid="help-menu-trigger"
+            role="menuitem"
+            aria-haspopup="true"
           >
-            <HelpCircleIcon size={14} />
+            <HelpCircleIcon size={14} aria-hidden="true" />
             Help
             <ChevronDownIcon size={12} />
           </button>

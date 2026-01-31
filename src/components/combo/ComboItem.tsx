@@ -92,6 +92,9 @@ export function ComboItem({ combo, onEdit }: ComboItemProps) {
           style={{ gridTemplateColumns: "40px 1fr 120px 1fr 120px 120px 80px" }}
           onClick={handleClick}
           onDoubleClick={handleDoubleClick}
+          role="listitem"
+          aria-selected={isSelected}
+          aria-label={`${combo.name}, keyword: ${combo.keyword}`}
         >
           <div className="flex items-center justify-center py-1">
             <input

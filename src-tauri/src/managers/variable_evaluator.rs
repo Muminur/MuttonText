@@ -511,7 +511,10 @@ fn apply_time_shift(shift: &str) -> Result<NaiveDateTime, VariableError> {
         return Err(VariableError::InvalidTimeShift(shift.to_string()));
     }
 
-    let unit = rest.chars().last().unwrap();
+    let unit = match rest.chars().last() {
+        Some(c) => c,
+        None => return Err(VariableError::InvalidTimeShift(shift.to_string())),
+    };
     let num_str = &rest[..rest.len() - unit.len_utf8()];
     let num: i64 = num_str
         .parse()
