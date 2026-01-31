@@ -4,10 +4,11 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as Dialog from "@radix-ui/react-dialog";
 import * as Select from "@radix-ui/react-select";
-import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
-import { X, ChevronDown, Check, Plus } from "lucide-react";
+import { X, ChevronDown, Check } from "lucide-react";
 import { useGroupStore } from "../../stores/groupStore";
 import { createComboSchema } from "../../lib/schemas";
+import { InsertVariableMenu } from "./InsertVariableMenu";
+import { SnippetEditor } from "./SnippetEditor";
 import type { Combo, CreateComboInput } from "../../lib/types";
 import type { z } from "zod";
 
@@ -19,18 +20,6 @@ interface ComboEditorProps {
 }
 
 type ComboFormData = z.infer<typeof createComboSchema>;
-
-// Variable options for insertion
-const VARIABLES = [
-  { value: "#{clipboard}", label: "Clipboard", desc: "Current clipboard content" },
-  { value: "#{date}", label: "Date", desc: "Current date" },
-  { value: "#{time}", label: "Time", desc: "Current time" },
-  { value: "#{dateTime}", label: "Date & Time", desc: "Current date and time" },
-  { value: "#{cursor}", label: "Cursor", desc: "Cursor position after expansion" },
-  { value: "#{input:}", label: "Input", desc: "Prompt for user input" },
-  { value: "#{combo:}", label: "Combo", desc: "Reference another combo" },
-  { value: "#{envVar:}", label: "Environment Variable", desc: "System environment variable" },
-];
 
 export function ComboEditor({ open, combo, onSave, onCancel }: ComboEditorProps) {
   const { groups } = useGroupStore();
@@ -96,7 +85,7 @@ export function ComboEditor({ open, combo, onSave, onCancel }: ComboEditorProps)
     }
   };
 
-  // Insert variable at cursor position
+  // Insert variable at cursor position in the snippet editor
   const insertVariable = (variable: string) => {
     if (!snippetRef.current) return;
 
@@ -196,39 +185,16 @@ export function ComboEditor({ open, combo, onSave, onCancel }: ComboEditorProps)
               <label htmlFor="snippet" className="block text-sm font-medium">
                 Snippet *
               </label>
-              <DropdownMenu.Root>
-                <DropdownMenu.Trigger asChild>
-                  <button
-                    type="button"
-                    className="px-3 py-1 text-sm bg-gray-100 hover:bg-gray-200 rounded flex items-center gap-1"
-                  >
-                    <Plus className="w-4 h-4" />
-                    Insert Variable
-                  </button>
-                </DropdownMenu.Trigger>
-                <DropdownMenu.Portal>
-                  <DropdownMenu.Content className="bg-white border rounded-lg shadow-lg p-1 min-w-[250px]">
-                    {VARIABLES.map((v) => (
-                      <DropdownMenu.Item
-                        key={v.value}
-                        className="px-3 py-2 hover:bg-gray-100 rounded cursor-pointer"
-                        onSelect={() => insertVariable(v.value)}
-                      >
-                        <div className="font-medium">{v.label}</div>
-                        <div className="text-xs text-gray-500">{v.desc}</div>
-                      </DropdownMenu.Item>
-                    ))}
-                  </DropdownMenu.Content>
-                </DropdownMenu.Portal>
-              </DropdownMenu.Root>
+              <InsertVariableMenu onInsert={insertVariable} />
             </div>
-            <textarea
+            <SnippetEditor
               id="snippet"
-              {...register("snippet")}
               ref={snippetRef}
-              rows={6}
-              className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono text-sm"
+              value={watch("snippet")}
+              onChange={(value) => setValue("snippet", value)}
               placeholder="The text to expand..."
+              rows={6}
+              className="w-full"
             />
             {errors.snippet && (
               <p className="text-red-500 text-sm mt-1">{errors.snippet.message}</p>

@@ -25,10 +25,19 @@ pub use clipboard_manager::ClipboardManager;
 pub use substitution::SubstitutionEngine;
 pub use expansion_pipeline::ExpansionPipeline;
 
+pub mod variable_evaluator;
+
+// Re-export Milestone 7 types
+pub use variable_evaluator::{VariableEvaluator, VariableError, EvalContext, EvalResult, KeyAction};
+
+pub mod shortcut_manager;
+
+// Re-export Milestone 8 types
+pub use shortcut_manager::{ShortcutManager, ShortcutError};
+
 // Submodules to be added as features are implemented:
 // pub mod preferences_manager;
 // pub mod backup_manager;
-// pub mod variable_evaluator;
 
 #[cfg(test)]
 mod tests {

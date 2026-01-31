@@ -351,6 +351,12 @@ impl ComboManager {
         self.storage.save(&self.library)?;
         Ok(())
     }
+
+    /// Provides mutable access to the library (for testing only).
+    #[cfg(test)]
+    pub fn library_mut_for_testing(&mut self) -> &mut ComboLibrary {
+        &mut self.library
+    }
 }
 
 #[cfg(test)]

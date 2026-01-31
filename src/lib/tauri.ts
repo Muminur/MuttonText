@@ -138,3 +138,42 @@ export async function deleteGroup(id: string): Promise<void> {
 export async function toggleGroup(id: string): Promise<boolean> {
   return invoke("toggle_group", { id });
 }
+
+// ========================================
+// Picker Operations
+// ========================================
+
+/**
+ * Search combos by query (searches name, keyword, description, snippet)
+ */
+export async function searchCombos(query: string): Promise<Combo[]> {
+  return invoke("search_combos", { query });
+}
+
+/**
+ * Trigger combo expansion (paste snippet)
+ */
+export async function triggerComboExpansion(comboId: string): Promise<void> {
+  return invoke("trigger_combo_expansion", { comboId });
+}
+
+/**
+ * Copy snippet to clipboard without expansion
+ */
+export async function copySnippetToClipboard(comboId: string): Promise<void> {
+  return invoke("copy_snippet_to_clipboard", { comboId });
+}
+
+/**
+ * Open the picker window
+ */
+export async function openPicker(): Promise<void> {
+  return invoke("open_picker");
+}
+
+/**
+ * Close the picker window
+ */
+export async function closePicker(): Promise<void> {
+  return invoke("close_picker");
+}
