@@ -9,11 +9,18 @@ import {
   ChevronDownIcon,
 } from "lucide-react";
 
+interface MenuBarProps {
+  onOpenPreferences?: () => void;
+  onOpenImport?: () => void;
+  onOpenExport?: () => void;
+  onOpenBackups?: () => void;
+}
+
 /**
  * Menu bar component with File, Edit, Combos, Groups, and Help menus.
  * Uses Radix UI DropdownMenu for accessible menu implementation.
  */
-export const MenuBar: React.FC = () => {
+export const MenuBar: React.FC<MenuBarProps> = ({ onOpenPreferences, onOpenImport, onOpenExport, onOpenBackups }) => {
   return (
     <div className="flex h-8 items-center gap-1 border-b bg-gray-100 px-2">
       {/* File Menu */}
@@ -48,15 +55,29 @@ export const MenuBar: React.FC = () => {
             <DropdownMenu.Separator className="my-1 h-px bg-gray-200" />
             <DropdownMenu.Item
               className="cursor-pointer px-3 py-2 text-sm outline-none hover:bg-gray-100"
-              onSelect={() => console.log("Import")}
+              onSelect={() => onOpenImport?.()}
             >
               Import...
             </DropdownMenu.Item>
             <DropdownMenu.Item
               className="cursor-pointer px-3 py-2 text-sm outline-none hover:bg-gray-100"
-              onSelect={() => console.log("Export")}
+              onSelect={() => onOpenExport?.()}
             >
               Export...
+            </DropdownMenu.Item>
+            <DropdownMenu.Item
+              className="cursor-pointer px-3 py-2 text-sm outline-none hover:bg-gray-100"
+              onSelect={() => onOpenBackups?.()}
+            >
+              Backups...
+            </DropdownMenu.Item>
+            <DropdownMenu.Separator className="my-1 h-px bg-gray-200" />
+            <DropdownMenu.Item
+              className="cursor-pointer px-3 py-2 text-sm outline-none hover:bg-gray-100"
+              onSelect={() => onOpenPreferences?.()}
+            >
+              Preferences
+              <span className="ml-auto pl-4 text-xs text-gray-400">Ctrl+,</span>
             </DropdownMenu.Item>
             <DropdownMenu.Separator className="my-1 h-px bg-gray-200" />
             <DropdownMenu.Item

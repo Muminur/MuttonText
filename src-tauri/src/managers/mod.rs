@@ -35,9 +35,27 @@ pub mod shortcut_manager;
 // Re-export Milestone 8 types
 pub use shortcut_manager::{ShortcutManager, ShortcutError};
 
-// Submodules to be added as features are implemented:
-// pub mod preferences_manager;
-// pub mod backup_manager;
+pub mod tray_manager;
+pub mod preferences_manager;
+pub mod lifecycle_manager;
+pub mod emoji_manager;
+
+// Re-export Milestone 9 types
+pub use tray_manager::{TrayManager, TrayState as TrayIconState, TrayMenuItem};
+pub use preferences_manager::{PreferencesManager, PreferencesError};
+pub use lifecycle_manager::{LifecycleManager, LifecycleError, AutostartConfig};
+pub use emoji_manager::{EmojiManager, EmojiEntry, EmojiError};
+
+// Milestone 10: Import/Export/Backup/Update
+pub mod import_manager;
+pub mod export_manager;
+pub mod backup_manager;
+pub mod update_manager;
+
+pub use import_manager::ImportManager;
+pub use export_manager::ExportManager;
+pub use backup_manager::BackupManager;
+pub use update_manager::UpdateManager;
 
 #[cfg(test)]
 mod tests {

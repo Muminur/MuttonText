@@ -4,6 +4,10 @@ import { Sidebar } from "../group/Sidebar";
 
 interface MainLayoutProps {
   children: React.ReactNode;
+  onOpenPreferences?: () => void;
+  onOpenImport?: () => void;
+  onOpenExport?: () => void;
+  onOpenBackups?: () => void;
 }
 
 const SIDEBAR_MIN_WIDTH = 180;
@@ -16,7 +20,7 @@ const SIDEBAR_WIDTH_KEY = "muttontext-sidebar-width";
  * Uses CSS Grid for layout: menu bar at top, sidebar on left, content on right.
  * Sidebar is resizable with min/max width constraints and persists size in localStorage.
  */
-export const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
+export const MainLayout: React.FC<MainLayoutProps> = ({ children, onOpenPreferences, onOpenImport, onOpenExport, onOpenBackups }) => {
   const [sidebarWidth, setSidebarWidth] = React.useState(() => {
     const saved = localStorage.getItem(SIDEBAR_WIDTH_KEY);
     return saved ? parseInt(saved, 10) : SIDEBAR_DEFAULT_WIDTH;
@@ -55,7 +59,7 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
 
   return (
     <div className="flex h-screen flex-col">
-      <MenuBar />
+      <MenuBar onOpenPreferences={onOpenPreferences} onOpenImport={onOpenImport} onOpenExport={onOpenExport} onOpenBackups={onOpenBackups} />
 
       {/* Main content area with resizable sidebar */}
       <div className="flex flex-1 overflow-hidden">

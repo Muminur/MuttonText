@@ -183,3 +183,73 @@ export type CreateGroupInput = Omit<Group, "id" | "createdAt" | "modifiedAt">;
 export type UpdateGroupInput = Partial<
   Omit<Group, "id" | "createdAt" | "modifiedAt">
 >;
+
+// ========================================
+// Tray Types
+// ========================================
+
+/** System tray state */
+export type TrayState = "active" | "paused" | "excludedApp";
+
+/** System tray menu item */
+export interface TrayMenuItem {
+  id: string;
+  label: string;
+  enabled: boolean;
+  checked?: boolean;
+}
+
+// ========================================
+// Backup Types
+// ========================================
+
+/** Information about a backup file */
+export interface BackupInfo {
+  id: string;
+  timestamp: string;
+  sizeBytes: number;
+  comboCount: number;
+}
+
+// ========================================
+// Import/Export Types
+// ========================================
+
+/** Supported import formats */
+export type ImportFormat =
+  | "beeftextJson"
+  | "beeftextCsv"
+  | "textExpanderCsv"
+  | "muttonTextJson";
+
+/** Supported export formats */
+export type ExportFormat = "muttonTextJson" | "textExpanderCsv" | "cheatsheetCsv";
+
+/** How to handle import conflicts */
+export type ConflictResolution = "skip" | "overwrite" | "rename";
+
+/** Preview of an import before applying */
+export interface ImportPreview {
+  format: ImportFormat;
+  comboCount: number;
+  groupCount: number;
+}
+
+/** Result of an import operation */
+export interface ImportResult {
+  importedCount: number;
+  skippedCount: number;
+  errors: string[];
+}
+
+// ========================================
+// Update Types
+// ========================================
+
+/** Version information from update check */
+export interface VersionInfo {
+  version: string;
+  releaseUrl: string;
+  releaseNotes: string;
+  publishedAt: string;
+}

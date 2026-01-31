@@ -8,6 +8,9 @@ pub mod error;
 pub mod group_commands;
 pub mod picker_commands;
 pub mod shortcut_commands;
+pub mod tray_commands;
+pub mod preferences_commands;
+pub mod data_commands;
 
 /// Application state shared across all Tauri commands.
 pub struct AppState {

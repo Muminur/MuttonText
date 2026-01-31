@@ -3,10 +3,16 @@ import { invoke } from "@tauri-apps/api/core";
 import type {
   Combo,
   Group,
+  Preferences,
   CreateComboInput,
   UpdateComboInput,
   CreateGroupInput,
   UpdateGroupInput,
+  TrayState,
+  ImportResult,
+  ImportPreview,
+  BackupInfo,
+  VersionInfo,
 } from "./types";
 
 // ========================================
@@ -176,4 +182,96 @@ export async function openPicker(): Promise<void> {
  */
 export async function closePicker(): Promise<void> {
   return invoke("close_picker");
+}
+
+// ========================================
+// Preferences Operations
+// ========================================
+
+export async function getPreferences(): Promise<Preferences> {
+  return invoke("get_preferences");
+}
+
+export async function updatePreferences(preferences: Preferences): Promise<void> {
+  return invoke("update_preferences", { preferences });
+}
+
+export async function resetPreferences(): Promise<Preferences> {
+  return invoke("reset_preferences");
+}
+
+export async function getExcludedApps(): Promise<string[]> {
+  return invoke("get_excluded_apps");
+}
+
+export async function addExcludedApp(app: string): Promise<void> {
+  return invoke("add_excluded_app", { app });
+}
+
+export async function removeExcludedApp(app: string): Promise<boolean> {
+  return invoke("remove_excluded_app", { app });
+}
+
+// ========================================
+// Tray Operations
+// ========================================
+
+export async function getTrayState(): Promise<TrayState> {
+  return invoke("get_tray_state");
+}
+
+export async function setTrayEnabled(enabled: boolean): Promise<void> {
+  return invoke("set_tray_enabled", { enabled });
+}
+
+// ========================================
+// Import/Export Operations
+// ========================================
+
+export async function importCombos(
+  content: string,
+  format: string,
+  conflictResolution: string
+): Promise<ImportResult> {
+  return invoke("import_combos", { content, format, conflictResolution });
+}
+
+export async function previewImport(content: string): Promise<ImportPreview> {
+  return invoke("preview_import", { content });
+}
+
+export async function exportCombos(format: string): Promise<string> {
+  return invoke("export_combos", { format });
+}
+
+// ========================================
+// Backup Operations
+// ========================================
+
+export async function createBackup(): Promise<BackupInfo> {
+  return invoke("create_backup");
+}
+
+export async function restoreBackup(backupId: string): Promise<void> {
+  return invoke("restore_backup", { backupId });
+}
+
+export async function listBackups(): Promise<BackupInfo[]> {
+  return invoke("list_backups");
+}
+
+export async function deleteBackup(backupId: string): Promise<void> {
+  return invoke("delete_backup", { backupId });
+}
+
+// ========================================
+// Update Operations
+// ========================================
+
+export async function checkForUpdates(): Promise<VersionInfo | null> {
+  return invoke("check_for_updates");
+}
+
+export async function skipUpdateVersion(version: string): Promise<void> {
+  return invoke("skip_update_version", { version });
 }
