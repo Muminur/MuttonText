@@ -11,6 +11,7 @@ pub mod shortcut_commands;
 pub mod tray_commands;
 pub mod preferences_commands;
 pub mod data_commands;
+pub mod engine_commands;
 
 /// Application state shared across all Tauri commands.
 pub struct AppState {

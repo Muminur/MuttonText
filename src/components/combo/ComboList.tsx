@@ -3,18 +3,24 @@ import { useState, useMemo, useCallback, useRef } from "react";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { Search, ChevronUp, ChevronDown } from "lucide-react";
 import { useComboStore } from "../../stores/comboStore";
+import { useGroupStore } from "../../stores/groupStore";
 import { ComboItem } from "./ComboItem";
+import { ComboEditor } from "./ComboEditor";
+import type { Combo, CreateComboInput, UpdateComboInput } from "../../lib/types";
 
 type SortField = "name" | "keyword" | "lastUsed" | "useCount";
 type SortDirection = "asc" | "desc";
 
 export function ComboList() {
-  const { combos, loading, error, selectedIds, selectAll, clearSelection } = useComboStore();
+  const { combos, loading, error, selectedIds, selectAll, clearSelection, updateCombo } = useComboStore();
+  const { selectedGroupId } = useGroupStore();
 
   const [searchQuery, setSearchQuery] = useState("");
   const [debouncedQuery, setDebouncedQuery] = useState("");
   const [sortField, setSortField] = useState<SortField>("name");
   const [sortDirection, setSortDirection] = useState<SortDirection>("asc");
+  const [editingCombo, setEditingCombo] = useState<Combo | undefined>(undefined);
+  const [editorOpen, setEditorOpen] = useState(false);
 
   const parentRef = useRef<HTMLDivElement>(null);
 
@@ -29,7 +35,10 @@ export function ComboList() {
 
   // Filter and sort combos
   const filteredAndSortedCombos = useMemo(() => {
-    let result = [...combos];
+    // First, filter by selected group
+    let result = selectedGroupId
+      ? combos.filter((combo) => combo.groupId === selectedGroupId)
+      : [...combos];
 
     // Filter by search query
     if (debouncedQuery.trim()) {
@@ -73,7 +82,7 @@ export function ComboList() {
     });
 
     return result;
-  }, [combos, debouncedQuery, sortField, sortDirection]);
+  }, [combos, selectedGroupId, debouncedQuery, sortField, sortDirection]);
 
   // Virtualizer for performance
   const rowVirtualizer = useVirtualizer({
@@ -119,6 +128,25 @@ export function ComboList() {
   const allSelected = filteredAndSortedCombos.length > 0 &&
     filteredAndSortedCombos.every((c) => selectedIds.has(c.id));
   const someSelected = filteredAndSortedCombos.some((c) => selectedIds.has(c.id)) && !allSelected;
+
+  // Handle edit combo
+  const handleEditCombo = (combo: Combo) => {
+    setEditingCombo(combo);
+    setEditorOpen(true);
+  };
+
+  // Handle save edited combo
+  const handleSaveCombo = async (data: CreateComboInput | UpdateComboInput) => {
+    try {
+      if (editingCombo) {
+        await updateCombo(editingCombo.id, data as UpdateComboInput);
+      }
+      setEditorOpen(false);
+      setEditingCombo(undefined);
+    } catch (error) {
+      console.error("Failed to update combo:", error);
+    }
+  };
 
   if (loading) {
     return (
@@ -240,7 +268,7 @@ export function ComboList() {
                         transform: `translateY(${virtualRow.start}px)`,
                       }}
                     >
-                      <ComboItem combo={combo} />
+                      <ComboItem combo={combo} onEdit={handleEditCombo} />
                     </div>
                   );
                 })}
@@ -249,6 +277,17 @@ export function ComboList() {
           </>
         )}
       </div>
+
+      {/* Combo Editor Dialog */}
+      <ComboEditor
+        open={editorOpen}
+        combo={editingCombo}
+        onSave={handleSaveCombo}
+        onCancel={() => {
+          setEditorOpen(false);
+          setEditingCombo(undefined);
+        }}
+      />
     </div>
   );
 }

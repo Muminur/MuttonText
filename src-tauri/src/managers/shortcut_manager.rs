@@ -1,6 +1,6 @@
 //! Global keyboard shortcut management for the picker window.
 
-use std::sync::{Arc, Mutex};
+use std::sync::Arc;
 use thiserror::Error;
 
 /// Errors that can occur during shortcut registration.

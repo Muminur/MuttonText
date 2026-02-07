@@ -1,14 +1,17 @@
 import { useEffect, useState, useCallback } from "react";
 import { MainLayout } from "./components/common/MainLayout";
 import { ContentArea } from "./components/common/ContentArea";
+import { ComboList } from "./components/combo/ComboList";
 import { PreferencesDialog } from "./components/preferences/PreferencesDialog";
 import { ImportDialog, ExportDialog, BackupManager } from "./components/data";
+import { useGroupStore } from "./stores/groupStore";
 
 function App() {
   const [preferencesOpen, setPreferencesOpen] = useState(false);
   const [importOpen, setImportOpen] = useState(false);
   const [exportOpen, setExportOpen] = useState(false);
   const [backupsOpen, setBackupsOpen] = useState(false);
+  const { selectedGroupId } = useGroupStore();
 
   const handleKeyDown = useCallback((e: KeyboardEvent) => {
     if ((e.ctrlKey || e.metaKey) && e.key === ",") {
@@ -30,11 +33,15 @@ function App() {
       onOpenBackups={() => setBackupsOpen(true)}
     >
       <ContentArea>
-        <div className="flex h-full items-center justify-center">
-          <h1 className="text-2xl font-bold text-gray-500">
-            Select a group to view combos
-          </h1>
-        </div>
+        {selectedGroupId ? (
+          <ComboList />
+        ) : (
+          <div className="flex h-full items-center justify-center">
+            <h1 className="text-2xl font-bold text-gray-500">
+              Select a group to view combos
+            </h1>
+          </div>
+        )}
       </ContentArea>
 
       <PreferencesDialog

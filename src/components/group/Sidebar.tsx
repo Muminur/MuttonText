@@ -3,19 +3,27 @@ import { PlusIcon } from "lucide-react";
 import { GroupList } from "./GroupList";
 import { GroupEditor } from "./GroupEditor";
 import { Group, CreateGroupInput } from "@/lib/types";
+import { useGroupStore } from "@/stores/groupStore";
+import { useComboStore } from "@/stores/comboStore";
 
 /**
  * Sidebar component containing the group list and "Add Group" button.
  * Fixed width, scrollable if content overflows.
  */
 export const Sidebar: React.FC = () => {
-  const [groups] = React.useState<Group[]>([]);
-  const [selectedGroupId, setSelectedGroupId] = React.useState<string | null>(null);
+  const { groups, selectedGroupId, selectGroup, createGroup, updateGroup, deleteGroup, toggleGroup, reorderGroups, loadGroups } = useGroupStore();
+  const { combos, loadCombos } = useComboStore();
   const [editorOpen, setEditorOpen] = React.useState(false);
   const [editingGroup, setEditingGroup] = React.useState<Group | undefined>(undefined);
 
+  // Load groups and combos on mount
+  React.useEffect(() => {
+    loadGroups();
+    loadCombos();
+  }, [loadGroups, loadCombos]);
+
   const handleSelectGroup = (groupId: string | null) => {
-    setSelectedGroupId(groupId);
+    selectGroup(groupId);
   };
 
   const handleEditGroup = (group: Group) => {
@@ -23,26 +31,38 @@ export const Sidebar: React.FC = () => {
     setEditorOpen(true);
   };
 
-  const handleDeleteGroup = (groupId: string) => {
-    console.log("Delete group:", groupId);
-    // TODO: Implement deletion via groupStore
+  const handleDeleteGroup = async (groupId: string) => {
+    try {
+      await deleteGroup(groupId);
+    } catch (error) {
+      console.error("Failed to delete group:", error);
+    }
   };
 
-  const handleToggleGroup = (groupId: string) => {
-    console.log("Toggle group:", groupId);
-    // TODO: Implement toggle via groupStore
+  const handleToggleGroup = async (groupId: string) => {
+    try {
+      await toggleGroup(groupId);
+    } catch (error) {
+      console.error("Failed to toggle group:", error);
+    }
   };
 
   const handleReorderGroups = (reorderedGroups: Group[]) => {
-    console.log("Reorder groups:", reorderedGroups);
-    // TODO: Implement reorder via groupStore
+    reorderGroups(reorderedGroups);
   };
 
-  const handleSaveGroup = (data: CreateGroupInput) => {
-    console.log("Save group:", data, editingGroup);
-    // TODO: Implement create/update via groupStore
-    setEditorOpen(false);
-    setEditingGroup(undefined);
+  const handleSaveGroup = async (data: CreateGroupInput) => {
+    try {
+      if (editingGroup) {
+        await updateGroup(editingGroup.id, data);
+      } else {
+        await createGroup(data);
+      }
+      setEditorOpen(false);
+      setEditingGroup(undefined);
+    } catch (error) {
+      console.error("Failed to save group:", error);
+    }
   };
 
   const handleAddGroup = () => {
@@ -50,10 +70,11 @@ export const Sidebar: React.FC = () => {
     setEditorOpen(true);
   };
 
-  const getGroupComboCount = (_groupId: string) => {
-    // TODO: Get from comboStore
-    return 0;
+  const getGroupComboCount = (groupId: string) => {
+    return combos.filter((combo) => combo.groupId === groupId).length;
   };
+
+  const totalComboCount = combos.length;
 
   return (
     <>
@@ -68,7 +89,7 @@ export const Sidebar: React.FC = () => {
             onDeleteGroup={handleDeleteGroup}
             onToggleGroup={handleToggleGroup}
             onReorderGroups={handleReorderGroups}
-            totalComboCount={0}
+            totalComboCount={totalComboCount}
             getGroupComboCount={getGroupComboCount}
           />
         </div>

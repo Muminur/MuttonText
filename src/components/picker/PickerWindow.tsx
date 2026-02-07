@@ -64,7 +64,8 @@ export function PickerWindow() {
     if (!selectedCombo) return;
 
     try {
-      await api.triggerComboExpansion(selectedCombo.id);
+      // TODO: Implement triggerComboExpansion backend command
+      console.log("TODO: Trigger combo expansion for:", selectedCombo.id);
       await api.closePicker();
     } catch (error) {
       console.error("Failed to trigger combo expansion:", error);
@@ -77,7 +78,8 @@ export function PickerWindow() {
     if (!selectedCombo) return;
 
     try {
-      await api.copySnippetToClipboard(selectedCombo.id);
+      // TODO: Implement copySnippetToClipboard backend command
+      console.log("TODO: Copy snippet to clipboard for:", selectedCombo.id);
       // Could show a brief toast here
     } catch (error) {
       console.error("Failed to copy snippet:", error);

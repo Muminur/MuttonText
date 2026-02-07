@@ -9,6 +9,7 @@ use super::error::CommandError;
 use super::AppState;
 
 /// Maximum number of search results returned.
+#[allow(dead_code)]
 const MAX_SEARCH_RESULTS: usize = 50;
 
 /// Cached search results to avoid re-scoring on repeated queries (MT-1109).

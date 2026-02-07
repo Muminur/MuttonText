@@ -8,6 +8,33 @@ use crate::models::matching::MatchingMode;
 
 use super::error::CommandError;
 use super::AppState;
+use super::engine_commands::EngineState;
+
+/// Helper to reload combos into the expansion engine after changes.
+fn reload_engine_combos(
+    combo_state: &State<AppState>,
+    engine_state: &State<EngineState>,
+) -> Result<(), CommandError> {
+    let manager = combo_state.combo_manager.lock().map_err(|_| CommandError {
+        code: "LOCK_ERROR".to_string(),
+        message: "Failed to acquire combo manager lock".to_string(),
+    })?;
+
+    let combos = manager.get_all_combos();
+    drop(manager); // Release lock
+
+    let engine = engine_state.engine.lock().map_err(|_| CommandError {
+        code: "LOCK_ERROR".to_string(),
+        message: "Failed to acquire engine lock".to_string(),
+    })?;
+
+    engine.load_combos(&combos).map_err(|e| CommandError {
+        code: "ENGINE_ERROR".to_string(),
+        message: format!("Failed to reload combos into engine: {}", e),
+    })?;
+
+    Ok(())
+}
 
 /// Parses a UUID string, returning a `CommandError` on failure.
 fn parse_uuid(field: &str, value: &str) -> Result<Uuid, CommandError> {
@@ -53,7 +80,8 @@ pub fn get_combo(state: State<AppState>, id: String) -> Result<Option<Combo>, Co
 /// Creates a new combo.
 #[tauri::command]
 pub fn create_combo(
-    state: State<AppState>,
+    combo_state: State<AppState>,
+    engine_state: State<EngineState>,
     name: String,
     keyword: String,
     snippet: String,
@@ -63,22 +91,29 @@ pub fn create_combo(
 ) -> Result<Combo, CommandError> {
     let gid = parse_uuid("group_id", &group_id)?;
     let mode = parse_matching_mode(&matching_mode)?;
-    let mut manager = state
+    let mut manager = combo_state
         .combo_manager
         .lock()
         .map_err(|_| CommandError {
             code: "LOCK_ERROR".to_string(),
             message: "Failed to acquire combo manager lock".to_string(),
         })?;
-    manager
+    let combo = manager
         .create_combo(name, keyword, snippet, gid, mode, case_sensitive)
-        .map_err(CommandError::from)
+        .map_err(CommandError::from)?;
+    drop(manager);
+
+    // Reload combos into expansion engine
+    reload_engine_combos(&combo_state, &engine_state)?;
+
+    Ok(combo)
 }
 
 /// Updates an existing combo. Only provided fields are changed.
 #[tauri::command]
 pub fn update_combo(
-    state: State<AppState>,
+    combo_state: State<AppState>,
+    engine_state: State<EngineState>,
     id: String,
     name: Option<String>,
     keyword: Option<String>,
@@ -93,30 +128,46 @@ pub fn update_combo(
     let mode = matching_mode
         .map(|m| parse_matching_mode(&m))
         .transpose()?;
-    let mut manager = state
+    let mut manager = combo_state
         .combo_manager
         .lock()
         .map_err(|_| CommandError {
             code: "LOCK_ERROR".to_string(),
             message: "Failed to acquire combo manager lock".to_string(),
         })?;
-    manager
+    let combo = manager
         .update_combo(uuid, name, keyword, snippet, gid, mode, case_sensitive, enabled)
-        .map_err(CommandError::from)
+        .map_err(CommandError::from)?;
+    drop(manager);
+
+    // Reload combos into expansion engine
+    reload_engine_combos(&combo_state, &engine_state)?;
+
+    Ok(combo)
 }
 
 /// Deletes a combo by ID.
 #[tauri::command]
-pub fn delete_combo(state: State<AppState>, id: String) -> Result<(), CommandError> {
+pub fn delete_combo(
+    combo_state: State<AppState>,
+    engine_state: State<EngineState>,
+    id: String,
+) -> Result<(), CommandError> {
     let uuid = parse_uuid("id", &id)?;
-    let mut manager = state
+    let mut manager = combo_state
         .combo_manager
         .lock()
         .map_err(|_| CommandError {
             code: "LOCK_ERROR".to_string(),
             message: "Failed to acquire combo manager lock".to_string(),
         })?;
-    manager.delete_combo(uuid).map_err(CommandError::from)
+    manager.delete_combo(uuid).map_err(CommandError::from)?;
+    drop(manager);
+
+    // Reload combos into expansion engine
+    reload_engine_combos(&combo_state, &engine_state)?;
+
+    Ok(())
 }
 
 /// Duplicates a combo, returning the new copy.
@@ -156,16 +207,26 @@ pub fn move_combo_to_group(
 
 /// Toggles a combo's enabled state and returns the new state.
 #[tauri::command]
-pub fn toggle_combo(state: State<AppState>, id: String) -> Result<bool, CommandError> {
+pub fn toggle_combo(
+    combo_state: State<AppState>,
+    engine_state: State<EngineState>,
+    id: String,
+) -> Result<bool, CommandError> {
     let uuid = parse_uuid("id", &id)?;
-    let mut manager = state
+    let mut manager = combo_state
         .combo_manager
         .lock()
         .map_err(|_| CommandError {
             code: "LOCK_ERROR".to_string(),
             message: "Failed to acquire combo manager lock".to_string(),
         })?;
-    manager.toggle_combo(uuid).map_err(CommandError::from)
+    let enabled = manager.toggle_combo(uuid).map_err(CommandError::from)?;
+    drop(manager);
+
+    // Reload combos into expansion engine
+    reload_engine_combos(&combo_state, &engine_state)?;
+
+    Ok(enabled)
 }
 
 #[cfg(test)]
