@@ -6,6 +6,7 @@
 //! whenever the buffer content changes.
 
 use std::sync::{Arc, Mutex, MutexGuard};
+use std::sync::atomic::{AtomicBool, Ordering};
 
 use crate::platform::keyboard_hook::{
     FocusDetector, Key, KeyEvent, KeyEventType, KeyboardHook, PlatformError, WindowInfo,
@@ -92,6 +93,12 @@ impl InputManagerInner {
 pub struct InputManager {
     inner: Arc<Mutex<InputManagerInner>>,
     keyboard_hook: Option<Box<dyn KeyboardHook>>,
+    /// Lock-free flag: when true, the hook callback silently discards events.
+    /// Used during expansion to prevent xdotool keystrokes from being captured.
+    is_suppressed: Arc<AtomicBool>,
+    /// Lock-free flag: when true, the hook callback clears the buffer on the
+    /// next event before processing. Used after expansion to reset state.
+    needs_buffer_clear: Arc<AtomicBool>,
 }
 
 impl InputManager {
@@ -100,6 +107,8 @@ impl InputManager {
         Self {
             inner: Arc::new(Mutex::new(InputManagerInner::new())),
             keyboard_hook: None,
+            is_suppressed: Arc::new(AtomicBool::new(false)),
+            needs_buffer_clear: Arc::new(AtomicBool::new(false)),
         }
     }
 
@@ -134,8 +143,23 @@ impl InputManager {
             .ok_or_else(|| PlatformError::Internal("No keyboard hook configured".into()))?;
 
         let inner = self.inner.clone();
+        let suppressed = self.is_suppressed.clone();
+        let needs_clear = self.needs_buffer_clear.clone();
         hook.start(Box::new(move |event: KeyEvent| {
+            // Check lock-free suppression flag first (no mutex needed).
+            // During expansion, all events are silently discarded.
+            if suppressed.load(Ordering::SeqCst) {
+                return;
+            }
+
             let mut state = lock_mutex(&inner);
+
+            // If buffer clear was requested (after expansion), do it now.
+            if needs_clear.swap(false, Ordering::SeqCst) {
+                state.buffer.clear();
+                // Don't notify - silent clear to prevent re-triggering
+            }
+
             if state.is_paused {
                 return;
             }
@@ -174,6 +198,26 @@ impl InputManager {
     /// Returns whether input processing is paused.
     pub fn is_paused(&self) -> bool {
         lock_mutex(&self.inner).is_paused
+    }
+
+    /// Lock-free: suppress all input events (used during expansion).
+    /// Safe to call from within the on_buffer_change callback without deadlock.
+    pub fn suppress(&self) {
+        self.is_suppressed.store(true, Ordering::SeqCst);
+        tracing::debug!("InputManager suppressed (lock-free)");
+    }
+
+    /// Lock-free: stop suppressing input events.
+    /// Safe to call from within the on_buffer_change callback without deadlock.
+    pub fn unsuppress(&self) {
+        self.is_suppressed.store(false, Ordering::SeqCst);
+        tracing::debug!("InputManager unsuppressed (lock-free)");
+    }
+
+    /// Lock-free: request buffer clear on the next hook event.
+    /// Safe to call from within the on_buffer_change callback without deadlock.
+    pub fn request_buffer_clear(&self) {
+        self.needs_buffer_clear.store(true, Ordering::SeqCst);
     }
 
     /// Get the current buffer contents.
