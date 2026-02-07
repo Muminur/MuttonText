@@ -1,0 +1,83 @@
+name: Build and Test
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  test:
+    name: Test on Ubuntu ${{ matrix.ubuntu }}
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        ubuntu: ['20.04', '22.04', '24.04']
+      fail-fast: false
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libwebkit2gtk-4.1-dev \
+            libgtk-3-dev \
+            libayatana-appindicator3-dev \
+            librsvg2-dev \
+            xdotool \
+            dpkg-dev
+
+      - name: Install frontend dependencies
+        run: npm ci
+
+      - name: Run TypeScript type check
+        run: npm run typecheck
+
+      - name: Run Rust tests
+        run: cd src-tauri && cargo test --lib
+
+      - name: Build .deb package
+        run: npm run tauri build -- --bundles deb
+
+      - name: Verify .deb created
+        run: |
+          DEB_FILE=$(find src-tauri/target/release/bundle/deb -name "*.deb" | head -n 1)
+          if [ -z "$DEB_FILE" ]; then
+            echo "ERROR: No .deb file found"
+            exit 1
+          fi
+          echo "Found: $DEB_FILE"
+          ls -lh "$DEB_FILE"
+
+      - name: Test .deb installation (Docker)
+        run: |
+          DEB_FILE=$(find src-tauri/target/release/bundle/deb -name "*.deb" | head -n 1)
+          ./tests/docker/test-install.sh ${{ matrix.ubuntu }} "$DEB_FILE"
+
+      - name: Upload .deb artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: muttontext-ubuntu-${{ matrix.ubuntu }}-deb
+          path: src-tauri/target/release/bundle/deb/*.deb
+          retention-days: 7
+
+  trigger-release:
+    name: Trigger Nightly Release
+    needs: test
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger release workflow
+        run: echo "Tests passed - nightly release will be triggered"
