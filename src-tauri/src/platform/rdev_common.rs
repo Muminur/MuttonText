@@ -11,7 +11,7 @@ use crate::platform::keyboard_hook::Key;
 pub(crate) fn rdev_key_to_key(rdev_key: &rdev::Key) -> Key {
     use rdev::Key as RK;
     match rdev_key {
-        RK::BackSpace => Key::Backspace,
+        RK::Backspace => Key::Backspace,
         RK::Return => Key::Enter,
         RK::Tab => Key::Tab,
         RK::Escape => Key::Escape,
