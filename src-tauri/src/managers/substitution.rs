@@ -56,6 +56,11 @@ pub struct SubstitutionConfig {
     pub timeout_secs: u64,
     /// Delay between chunks when pasting large snippets, in milliseconds (MT-1104).
     pub chunk_delay_ms: u64,
+    /// Delay before starting backspace deletion, in milliseconds.
+    /// This allows applications (especially browsers) to fully process the last
+    /// keystroke before xdotool starts deleting. Without this delay, the first
+    /// character of the keyword may not be deleted in Firefox/Chrome.
+    pub pre_deletion_delay_ms: u64,
 }
 
 /// Trait for checking if the target window still has focus (MT-1103).
@@ -84,6 +89,7 @@ impl Default for SubstitutionConfig {
             use_shift_insert: cfg!(target_os = "linux"),
             timeout_secs: DEFAULT_SUBSTITUTION_TIMEOUT_SECS,
             chunk_delay_ms: 10,
+            pre_deletion_delay_ms: 20,
         }
     }
 }
@@ -191,11 +197,22 @@ pub fn insert_via_keystrokes(text: &str, config: &SubstitutionConfig) -> Result<
 /// This method works in terminals (including Claude Code CLI) by using the
 /// external xdotool command instead of rdev's simulate which doesn't work
 /// reliably in terminals.
+///
+/// IMPORTANT: Includes a pre-deletion delay (config.pre_deletion_delay_ms) to allow
+/// applications (especially browsers like Firefox/Chrome) to fully process the last
+/// keystroke before xdotool starts deleting. Without this delay, the first character
+/// of the keyword may remain undeleted in browser text fields.
 pub fn delete_keyword_xdotool(count: usize, config: &SubstitutionConfig) -> Result<(), SubstitutionError> {
     if count > MAX_KEYWORD_LENGTH {
         return Err(SubstitutionError::KeywordTooLong(count, MAX_KEYWORD_LENGTH));
     }
-    tracing::debug!("Deleting {} characters via xdotool backspace", count);
+    tracing::debug!("Deleting {} characters via xdotool backspace (with {}ms pre-deletion delay)", count, config.pre_deletion_delay_ms);
+
+    // Wait for the target app to fully process the last keystroke
+    // This is critical for browsers (Firefox, Chrome) which have async input processing
+    if config.pre_deletion_delay_ms > 0 {
+        thread::sleep(Duration::from_millis(config.pre_deletion_delay_ms));
+    }
 
     let output = std::process::Command::new("xdotool")
         .arg("key")
@@ -430,10 +447,12 @@ mod tests {
             use_shift_insert: true,
             timeout_secs: 10,
             chunk_delay_ms: 20,
+            pre_deletion_delay_ms: 30,
         };
         let engine = SubstitutionEngine::new(config);
         assert_eq!(engine.config().key_delay_ms, 10);
         assert!(engine.config().use_shift_insert);
+        assert_eq!(engine.config().pre_deletion_delay_ms, 30);
     }
 
     #[test]
@@ -447,9 +466,11 @@ mod tests {
             use_shift_insert: false,
             timeout_secs: 5,
             chunk_delay_ms: 10,
+            pre_deletion_delay_ms: 25,
         });
         assert_eq!(engine.config().key_delay_ms, 20);
         assert_eq!(engine.config().paste_restore_delay_ms, 200);
+        assert_eq!(engine.config().pre_deletion_delay_ms, 25);
     }
 
     #[test]
@@ -466,12 +487,14 @@ mod tests {
             use_shift_insert: true,
             timeout_secs: 7,
             chunk_delay_ms: 15,
+            pre_deletion_delay_ms: 35,
         };
         let cloned = config.clone();
         assert_eq!(cloned.key_delay_ms, 15);
         assert_eq!(cloned.paste_restore_delay_ms, 75);
         assert!(cloned.use_shift_insert);
         assert_eq!(cloned.timeout_secs, 7);
+        assert_eq!(cloned.pre_deletion_delay_ms, 35);
     }
 
     #[test]
@@ -535,6 +558,7 @@ mod tests {
             use_shift_insert: false,
             timeout_secs: 10,
             chunk_delay_ms: 10,
+            pre_deletion_delay_ms: 20,
         };
         assert_eq!(config.timeout_secs, 10);
     }
@@ -615,5 +639,41 @@ mod tests {
         let msg = err.to_string();
         assert!(msg.contains("300"));
         assert!(msg.contains(&MAX_KEYWORD_LENGTH.to_string()));
+    }
+
+    // ── Browser compatibility: pre-deletion delay ─────────────────
+
+    #[test]
+    fn test_config_pre_deletion_delay_default() {
+        let config = SubstitutionConfig::default();
+        assert_eq!(config.pre_deletion_delay_ms, 20,
+            "Default pre-deletion delay should be 20ms for browser compatibility");
+    }
+
+    #[test]
+    fn test_config_pre_deletion_delay_custom() {
+        let config = SubstitutionConfig {
+            key_delay_ms: 5,
+            paste_restore_delay_ms: 50,
+            use_shift_insert: false,
+            timeout_secs: 5,
+            chunk_delay_ms: 10,
+            pre_deletion_delay_ms: 50,
+        };
+        assert_eq!(config.pre_deletion_delay_ms, 50);
+    }
+
+    #[test]
+    fn test_config_pre_deletion_delay_zero_allowed() {
+        // Zero delay should be allowed (for terminal use where no delay is needed)
+        let config = SubstitutionConfig {
+            key_delay_ms: 5,
+            paste_restore_delay_ms: 50,
+            use_shift_insert: false,
+            timeout_secs: 5,
+            chunk_delay_ms: 10,
+            pre_deletion_delay_ms: 0,
+        };
+        assert_eq!(config.pre_deletion_delay_ms, 0);
     }
 }
