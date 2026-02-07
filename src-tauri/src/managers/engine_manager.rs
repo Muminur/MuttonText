@@ -274,27 +274,30 @@ impl EngineManager {
         let combo_used_cb = self.on_combo_used.clone();
 
         inner.input_manager.on_buffer_change(move |buffer| {
-            // Lock the inner state to access pipeline and clipboard
+            // Lock the inner state to access pipeline and clipboard.
+            // NOTE: This callback is invoked from within InputManagerInner's
+            // notify_change(), which means the InputManagerInner mutex is ALREADY
+            // held. We MUST NOT call any InputManager method that locks that mutex
+            // (pause, resume, clear_buffer) or we'll deadlock.
+            // Instead, use the lock-free suppress/unsuppress/request_buffer_clear.
             if let Ok(mut state) = inner_clone.lock() {
-                // PHASE 1: Check for match (input manager is NOT paused)
-                // This allows normal keystroke capture to continue while we check the buffer
+                // PHASE 1: Check for match (input is NOT suppressed)
                 if let Some(match_result) = Self::check_for_match(&mut state, buffer) {
-                    // PHASE 2: Match found! Now pause BEFORE performing expansion
-                    // This prevents the keyboard hook from capturing xdotool-generated
-                    // keystrokes during expansion, which would cause an infinite loop.
-                    state.input_manager.pause();
+                    // PHASE 2: Match found! Suppress input via lock-free AtomicBool.
+                    // This prevents the hook from capturing xdotool keystrokes.
+                    state.input_manager.suppress();
 
-                    tracing::debug!(
-                        "Match found: '{}' - pausing input and performing expansion",
-                        match_result.keyword
+                    tracing::info!(
+                        "Expanding combo via {:?}: keyword='{}', snippet_len={}",
+                        state.paste_method,
+                        match_result.keyword,
+                        match_result.snippet.len()
                     );
 
-                    // CRITICAL: Clear buffer IMMEDIATELY before expansion
-                    // This prevents re-triggering the match if the snippet contains
-                    // the keyword or if any remnants remain in the buffer.
-                    state.input_manager.clear_buffer();
+                    // Request buffer clear for the next hook event
+                    state.input_manager.request_buffer_clear();
 
-                    // PHASE 3: Perform the actual substitution (while paused)
+                    // PHASE 3: Perform the actual substitution (while suppressed)
                     if let Some(expansion_result) = Self::perform_expansion(&mut state, match_result) {
                         tracing::info!(
                             "Expanded combo: '{}' → {} chars",
@@ -302,20 +305,17 @@ impl EngineManager {
                             expansion_result.snippet.len()
                         );
 
-                        // Notify callback
                         if let Some(ref cb) = combo_used_cb {
                             cb(expansion_result.combo_id);
                         }
                     }
 
-                    // Small delay to ensure xdotool finishes typing before resuming
-                    std::thread::sleep(std::time::Duration::from_millis(50));
+                    // Small delay to ensure xdotool finishes typing before unsuppressing
+                    std::thread::sleep(std::time::Duration::from_millis(100));
 
-                    // CRITICAL: Always resume input manager after expansion attempt
-                    // This re-enables keystroke capture for future expansions.
-                    state.input_manager.resume();
+                    // PHASE 4: Unsuppress input (lock-free, no deadlock)
+                    state.input_manager.unsuppress();
                 }
-                // If no match found, do nothing - input manager remains active and NOT paused
             }
         });
 
