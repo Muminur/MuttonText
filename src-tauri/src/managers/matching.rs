@@ -626,4 +626,21 @@ mod tests {
         let engine = MatcherEngine::default();
         assert_eq!(engine.combo_count(), 0);
     }
+
+    #[test]
+    fn test_muttontext_window_is_excluded() {
+        // Test that MuttonText's own window class is properly excluded
+        let mut engine = MatcherEngine::new();
+        engine.load_combos(&[strict("github", "https://github.com")]);
+        engine.set_excluded_apps(vec!["muttontext".to_string()]);
+
+        // MuttonText window should be excluded (case-insensitive)
+        assert!(engine.find_match("github", Some("MuttonText")).is_none());
+        assert!(engine.find_match("github", Some("muttontext")).is_none());
+        assert!(engine.find_match("github", Some("MUTTONTEXT")).is_none());
+
+        // Other apps should still work
+        assert!(engine.find_match("github", Some("gedit")).is_some());
+        assert!(engine.find_match("github", None).is_some());
+    }
 }

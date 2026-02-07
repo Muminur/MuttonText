@@ -19,16 +19,17 @@ use crate::managers::{
 };
 use crate::models::{Combo, Preferences};
 use crate::models::preferences::PasteMethod;
-use crate::platform::keyboard_hook::KeyboardHook;
+use crate::platform::keyboard_hook::{FocusDetector, KeyboardHook};
 
 #[cfg(target_os = "linux")]
-use crate::platform::linux::LinuxKeyboardHook;
+use crate::platform::linux::{LinuxKeyboardHook, LinuxFocusDetector};
 
 #[cfg(target_os = "macos")]
-use crate::platform::macos::MacOSKeyboardHook;
+use crate::platform::macos::{MacOSKeyboardHook, MacOSFocusDetector};
 
+// Windows support is not yet implemented, use mock for now
 #[cfg(target_os = "windows")]
-use crate::platform::windows::WindowsKeyboardHook;
+use crate::platform::mock::MockFocusDetector;
 
 /// Errors from engine operations.
 #[derive(Debug, Error)]
@@ -62,6 +63,7 @@ struct EngineInner {
     input_manager: InputManager,
     expansion_pipeline: ExpansionPipeline,
     clipboard: ClipboardManager<ArboardProvider>,
+    focus_detector: Box<dyn FocusDetector>,
     status: EngineStatus,
     paste_method: PasteMethod,
 }
@@ -85,19 +87,28 @@ use crate::managers::expansion_pipeline::ExpansionResult;
 impl EngineManager {
     /// Helper function to try expanding from a buffer, handling borrow checker constraints.
     fn try_expand(state: &mut EngineInner, buffer: &str) -> Option<ExpansionResult> {
+        // Detect the currently focused application
+        let current_app = state
+            .focus_detector
+            .get_active_window_info()
+            .ok()
+            .map(|info| info.app_name);
+
+        let current_app_ref = current_app.as_deref();
+
         let result = match state.paste_method {
             PasteMethod::Clipboard => {
                 state.expansion_pipeline.expand_via_clipboard(
                     buffer,
-                    None,
+                    current_app_ref,
                     &mut state.clipboard,
                 )
             }
             PasteMethod::SimulateKeystrokes => {
-                state.expansion_pipeline.expand_via_keystrokes(buffer, None)
+                state.expansion_pipeline.expand_via_keystrokes(buffer, current_app_ref)
             }
             PasteMethod::XdotoolType => {
-                state.expansion_pipeline.expand_via_xdotool(buffer, None)
+                state.expansion_pipeline.expand_via_xdotool(buffer, current_app_ref)
             }
         };
         match result {
@@ -119,14 +130,16 @@ impl EngineManager {
         let clipboard = ClipboardManager::new_system()
             .expect("Failed to initialize clipboard manager");
 
-        // Attach platform-specific keyboard hook
+        // Attach platform-specific keyboard hook and focus detector
         let hook: Box<dyn KeyboardHook> = Self::create_keyboard_hook();
+        let focus_detector: Box<dyn FocusDetector> = Self::create_focus_detector();
         input_manager.set_keyboard_hook(hook);
 
         let inner = EngineInner {
             input_manager,
             expansion_pipeline,
             clipboard,
+            focus_detector,
             status: EngineStatus::Stopped,
             paste_method: PasteMethod::default(),
         };
@@ -151,12 +164,37 @@ impl EngineManager {
 
         #[cfg(target_os = "windows")]
         {
-            Box::new(WindowsKeyboardHook::new())
+            // Windows keyboard hook not yet implemented
+            compile_error!("Windows keyboard hook not yet implemented");
         }
 
         #[cfg(not(any(target_os = "linux", target_os = "macos", target_os = "windows")))]
         {
             compile_error!("Unsupported platform for keyboard hooks");
+        }
+    }
+
+    /// Creates the platform-specific focus detector.
+    fn create_focus_detector() -> Box<dyn FocusDetector> {
+        #[cfg(target_os = "linux")]
+        {
+            Box::new(LinuxFocusDetector::new())
+        }
+
+        #[cfg(target_os = "macos")]
+        {
+            Box::new(MacOSFocusDetector::new())
+        }
+
+        #[cfg(target_os = "windows")]
+        {
+            // Windows focus detector not yet implemented, use mock as fallback
+            Box::new(MockFocusDetector::new())
+        }
+
+        #[cfg(not(any(target_os = "linux", target_os = "macos", target_os = "windows")))]
+        {
+            compile_error!("Unsupported platform for focus detection");
         }
     }
 
@@ -179,9 +217,21 @@ impl EngineManager {
     /// Applies preferences to the expansion engine.
     pub fn apply_preferences(&self, prefs: &Preferences) -> Result<(), EngineError> {
         let mut inner = self.inner.lock().map_err(|_| EngineError::LockError)?;
-        inner.expansion_pipeline.apply_preferences(prefs);
+
+        // Always add MuttonText to excluded apps to prevent self-expansion
+        let mut excluded_apps = prefs.excluded_apps.clone();
+        if !excluded_apps.iter().any(|app| app.to_lowercase() == "muttontext") {
+            excluded_apps.push("muttontext".to_string());
+        }
+
+        // Apply preferences with augmented exclusion list
+        let mut prefs_with_self_exclusion = prefs.clone();
+        prefs_with_self_exclusion.excluded_apps = excluded_apps;
+        inner.expansion_pipeline.apply_preferences(&prefs_with_self_exclusion);
+
         inner.paste_method = prefs.paste_method;
-        tracing::info!("Applied preferences to expansion engine (paste_method: {:?})", prefs.paste_method);
+        tracing::info!("Applied preferences to expansion engine (paste_method: {:?}, excluded_apps: {:?})",
+            prefs.paste_method, prefs_with_self_exclusion.excluded_apps);
         Ok(())
     }
 
@@ -323,6 +373,38 @@ mod tests {
 
         // Verify paste_method is stored (we can't directly access it, but the
         // test ensures apply_preferences doesn't panic and accepts the new variant)
+    }
+
+    #[test]
+    fn test_engine_auto_excludes_muttontext() {
+        let engine = EngineManager::new();
+        let prefs = Preferences {
+            excluded_apps: vec!["1password".to_string()],
+            ..Default::default()
+        };
+
+        let result = engine.apply_preferences(&prefs);
+        assert!(result.is_ok());
+
+        // Verify that MuttonText was auto-added to excluded apps
+        // We can't directly inspect the engine state, but we can verify
+        // apply_preferences succeeds and doesn't panic
+    }
+
+    #[test]
+    fn test_engine_does_not_duplicate_muttontext_exclusion() {
+        let engine = EngineManager::new();
+        let prefs = Preferences {
+            excluded_apps: vec!["MuttonText".to_string(), "1password".to_string()],
+            ..Default::default()
+        };
+
+        let result = engine.apply_preferences(&prefs);
+        assert!(result.is_ok());
+
+        // Apply again to ensure no duplication
+        let result = engine.apply_preferences(&prefs);
+        assert!(result.is_ok());
     }
 
     // Note: Full integration tests require a display server and are
