@@ -7,8 +7,6 @@ use crate::managers::backup_manager::{BackupInfo, BackupManager};
 use crate::managers::export_manager::{ExportFormat, ExportManager};
 use crate::managers::import_manager::{ConflictResolution, ImportFormat, ImportManager, ImportPreview, ImportResult};
 use crate::managers::update_manager::{UpdateManager, VersionInfo};
-use crate::models::combo::Combo;
-use crate::models::group::Group;
 
 /// State for backup manager, managed by Tauri.
 pub struct BackupState {
@@ -131,11 +129,17 @@ pub fn preview_import(content: String) -> Result<ImportPreview, CommandError> {
 /// Export combos to the given format.
 #[tauri::command]
 pub fn export_combos(
-    combos: Vec<Combo>,
-    groups: Vec<Group>,
     format: String,
+    state: tauri::State<'_, super::AppState>,
 ) -> Result<String, CommandError> {
     let fmt = parse_export_format(&format)?;
+    let manager = state.combo_manager.lock().map_err(|_| CommandError {
+        code: "LOCK_ERROR".to_string(),
+        message: "Failed to acquire combo manager lock".to_string(),
+    })?;
+    let combos = manager.get_all_combos();
+    let groups = manager.get_all_groups();
+    drop(manager);
     Ok(ExportManager::export_to_format(&combos, &groups, fmt)?)
 }
 
@@ -360,7 +364,7 @@ mod tests {
     }
 
     #[test]
-    fn test_export_combos_command() {
+    fn test_export_combos_logic() {
         use crate::models::combo::ComboBuilder;
         use crate::models::group::Group;
 
@@ -371,13 +375,17 @@ mod tests {
             .group_id(group.id)
             .build()
             .unwrap();
-        let result = export_combos(
-            vec![combo],
-            vec![group],
-            "muttonTextJson".to_string(),
-        )
-        .unwrap();
+        let fmt = parse_export_format("muttonTextJson").unwrap();
+        let result = ExportManager::export_to_format(&[combo], &[group], fmt).unwrap();
         assert!(result.contains("sig"));
+    }
+
+    #[test]
+    fn test_export_format_parsing() {
+        assert!(parse_export_format("muttonTextJson").is_ok());
+        assert!(parse_export_format("textExpanderCsv").is_ok());
+        assert!(parse_export_format("cheatsheetCsv").is_ok());
+        assert!(parse_export_format("invalidFormat").is_err());
     }
 
     // ── Import Size Limit ────────────────────────────────────────
