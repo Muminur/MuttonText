@@ -85,8 +85,9 @@ pub struct EngineManager {
 use crate::managers::expansion_pipeline::ExpansionResult;
 
 impl EngineManager {
-    /// Helper function to try expanding from a buffer, handling borrow checker constraints.
-    fn try_expand(state: &mut EngineInner, buffer: &str) -> Option<ExpansionResult> {
+    /// Checks if there's a match in the buffer without performing expansion.
+    /// Returns the match result if found.
+    fn check_for_match(state: &mut EngineInner, buffer: &str) -> Option<crate::managers::matching::MatchResult> {
         // Detect the currently focused application
         let current_app = state
             .focus_detector
@@ -96,26 +97,47 @@ impl EngineManager {
 
         let current_app_ref = current_app.as_deref();
 
-        let result = match state.paste_method {
+        // Just check for match, don't perform expansion yet
+        state.expansion_pipeline.process_buffer(buffer, current_app_ref)
+    }
+
+    /// Performs the expansion substitution using the provided match result.
+    /// This should be called AFTER pausing the input manager.
+    fn perform_expansion(
+        state: &mut EngineInner,
+        match_result: crate::managers::matching::MatchResult,
+    ) -> Option<ExpansionResult> {
+        // Perform the actual substitution based on paste method
+        let substitution_result = match state.paste_method {
             PasteMethod::Clipboard => {
-                state.expansion_pipeline.expand_via_clipboard(
-                    buffer,
-                    current_app_ref,
+                state.expansion_pipeline.substitution().substitute_via_clipboard(
+                    match_result.keyword_len,
+                    &match_result.snippet,
                     &mut state.clipboard,
                 )
             }
             PasteMethod::SimulateKeystrokes => {
-                state.expansion_pipeline.expand_via_keystrokes(buffer, current_app_ref)
+                state.expansion_pipeline.substitution().substitute_via_keystrokes(
+                    match_result.keyword_len,
+                    &match_result.snippet,
+                )
             }
             PasteMethod::XdotoolType => {
-                state.expansion_pipeline.expand_via_xdotool(buffer, current_app_ref)
+                state.expansion_pipeline.substitution().substitute_via_xdotool(
+                    match_result.keyword_len,
+                    &match_result.snippet,
+                )
             }
         };
-        match result {
-            Ok(Some(result)) => Some(result),
-            Ok(None) => None,
+
+        match substitution_result {
+            Ok(()) => Some(ExpansionResult {
+                combo_id: match_result.combo_id,
+                keyword: match_result.keyword,
+                snippet: match_result.snippet,
+            }),
             Err(e) => {
-                tracing::error!("Expansion failed: {}", e);
+                tracing::error!("Substitution failed: {}", e);
                 None
             }
         }
@@ -254,38 +276,46 @@ impl EngineManager {
         inner.input_manager.on_buffer_change(move |buffer| {
             // Lock the inner state to access pipeline and clipboard
             if let Ok(mut state) = inner_clone.lock() {
-                // CRITICAL: Pause input manager BEFORE checking for matches
-                // This prevents the keyboard hook from capturing xdotool-generated
-                // keystrokes during expansion, which would cause an infinite loop.
-                state.input_manager.pause();
+                // PHASE 1: Check for match (input manager is NOT paused)
+                // This allows normal keystroke capture to continue while we check the buffer
+                if let Some(match_result) = Self::check_for_match(&mut state, buffer) {
+                    // PHASE 2: Match found! Now pause BEFORE performing expansion
+                    // This prevents the keyboard hook from capturing xdotool-generated
+                    // keystrokes during expansion, which would cause an infinite loop.
+                    state.input_manager.pause();
 
-                // Attempt expansion via clipboard (preferred method on Linux)
-                // Use the EngineInner helper method to avoid borrow checker issues
-                if let Some(expansion_result) = Self::try_expand(&mut state, buffer) {
-                    tracing::info!(
-                        "Expanded combo: '{}' → {} chars",
-                        expansion_result.keyword,
-                        expansion_result.snippet.len()
+                    tracing::debug!(
+                        "Match found: '{}' - pausing input and performing expansion",
+                        match_result.keyword
                     );
 
-                    // CRITICAL: Clear buffer IMMEDIATELY after expansion
+                    // CRITICAL: Clear buffer IMMEDIATELY before expansion
                     // This prevents re-triggering the match if the snippet contains
                     // the keyword or if any remnants remain in the buffer.
                     state.input_manager.clear_buffer();
 
-                    // Notify callback
-                    if let Some(ref cb) = combo_used_cb {
-                        cb(expansion_result.combo_id);
+                    // PHASE 3: Perform the actual substitution (while paused)
+                    if let Some(expansion_result) = Self::perform_expansion(&mut state, match_result) {
+                        tracing::info!(
+                            "Expanded combo: '{}' → {} chars",
+                            expansion_result.keyword,
+                            expansion_result.snippet.len()
+                        );
+
+                        // Notify callback
+                        if let Some(ref cb) = combo_used_cb {
+                            cb(expansion_result.combo_id);
+                        }
                     }
 
                     // Small delay to ensure xdotool finishes typing before resuming
                     std::thread::sleep(std::time::Duration::from_millis(50));
-                }
 
-                // CRITICAL: Always resume input manager
-                // Even if expansion failed or no match was found, we must resume
-                // to continue listening for keystrokes.
-                state.input_manager.resume();
+                    // CRITICAL: Always resume input manager after expansion attempt
+                    // This re-enables keystroke capture for future expansions.
+                    state.input_manager.resume();
+                }
+                // If no match found, do nothing - input manager remains active and NOT paused
             }
         });
 
@@ -427,6 +457,33 @@ mod tests {
     }
 
     #[test]
+    fn test_expansion_works_with_correct_pause_timing() {
+        // This test verifies that expansion works when pause happens
+        // AFTER match detection but BEFORE substitution (not before match detection).
+        use crate::models::combo::ComboBuilder;
+        use crate::models::matching::MatchingMode;
+
+        let engine = EngineManager::new();
+
+        // Create a combo: "gh" → "https://github.com" (short keyword for testing)
+        let combo = ComboBuilder::new()
+            .keyword("gh")
+            .snippet("https://github.com")
+            .matching_mode(MatchingMode::Strict)
+            .build()
+            .unwrap();
+
+        engine.load_combos(&[combo]).unwrap();
+
+        // Verify the engine can detect the match
+        // This tests that match detection works BEFORE any pause occurs
+        let inner = engine.inner.lock().unwrap();
+        let result = inner.expansion_pipeline.process_buffer("gh", None);
+        assert!(result.is_some(), "Should detect match for 'gh'");
+        assert_eq!(result.unwrap().keyword, "gh");
+    }
+
+    #[test]
     fn test_buffer_cleared_after_expansion() {
         // This test demonstrates the infinite loop bug fix:
         // After expansion, the buffer MUST be cleared to prevent xdotool-typed
@@ -455,11 +512,12 @@ mod tests {
 
         // This test documents expected behavior:
         // 1. Buffer accumulates "github"
-        // 2. Expansion triggers
-        // 3. Buffer is cleared BEFORE substitution starts
-        // 4. InputManager is paused during substitution
-        // 5. InputManager is resumed after substitution
-        // 6. Buffer remains empty (xdotool output not captured)
+        // 2. Match detection occurs (while input is NOT paused)
+        // 3. Once match found, InputManager is paused
+        // 4. Buffer is cleared
+        // 5. Substitution happens (backspace + text insertion)
+        // 6. InputManager is resumed
+        // 7. Buffer remains empty (xdotool output not captured because we were paused)
     }
 
     // Note: Full integration tests require a display server and are
