@@ -6,10 +6,15 @@ on:
   pull_request:
     branches: [ main ]
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   test:
     name: Test on Ubuntu ${{ matrix.ubuntu }}
     runs-on: ubuntu-latest
+    timeout-minutes: 60
     strategy:
       matrix:
         ubuntu: ['20.04', '22.04', '24.04']
@@ -28,6 +33,11 @@ jobs:
       - name: Setup Rust
         uses: dtolnay/rust-toolchain@stable
 
+      - name: Cache Rust dependencies
+        uses: Swatinem/rust-cache@v2
+        with:
+          workdir: src-tauri
+
       - name: Install system dependencies
         run: |
           sudo apt-get update
@@ -44,6 +54,9 @@ jobs:
 
       - name: Run TypeScript type check
         run: npm run typecheck
+
+      - name: Run frontend tests
+        run: npm run test
 
       - name: Run Rust tests
         run: cd src-tauri && cargo test --lib
