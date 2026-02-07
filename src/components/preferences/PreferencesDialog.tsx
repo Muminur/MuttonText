@@ -100,13 +100,13 @@ export const PreferencesDialog: React.FC<PreferencesDialogProps> = ({ isOpen, on
       aria-modal="true"
       aria-label="Preferences"
     >
-      <div className="flex h-[520px] w-[680px] flex-col rounded-lg bg-white shadow-xl">
+      <div className="flex h-[520px] w-[680px] flex-col rounded-lg bg-white dark:bg-gray-800 shadow-xl">
         {/* Header */}
-        <div className="flex items-center justify-between border-b px-6 py-4">
-          <h2 className="text-lg font-semibold text-gray-900">Preferences</h2>
+        <div className="flex items-center justify-between border-b border-gray-200 dark:border-gray-700 px-6 py-4">
+          <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Preferences</h2>
           <button
             onClick={onClose}
-            className="rounded p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
+            className="rounded p-1 text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-gray-600 dark:hover:text-gray-300"
             aria-label="Close"
           >
             <XIcon size={18} />
@@ -116,7 +116,7 @@ export const PreferencesDialog: React.FC<PreferencesDialogProps> = ({ isOpen, on
         {/* Body */}
         <div className="flex flex-1 overflow-hidden">
           {/* Tab sidebar */}
-          <nav className="w-40 border-r bg-gray-50 py-2" role="tablist" aria-label="Preference categories" aria-orientation="vertical">
+          <nav className="w-40 border-r border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 py-2" role="tablist" aria-label="Preference categories" aria-orientation="vertical">
             {TABS.map((tab) => (
               <button
                 key={tab.id}
@@ -127,8 +127,8 @@ export const PreferencesDialog: React.FC<PreferencesDialogProps> = ({ isOpen, on
                 id={`tab-${tab.id}`}
                 className={`block w-full px-4 py-2 text-left text-sm transition-colors ${
                   activeTab === tab.id
-                    ? "bg-blue-50 font-medium text-blue-700"
-                    : "text-gray-600 hover:bg-gray-100"
+                    ? "bg-blue-50 dark:bg-blue-900/30 font-medium text-blue-700 dark:text-blue-400"
+                    : "text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800"
                 }`}
               >
                 {tab.label}
@@ -147,17 +147,17 @@ export const PreferencesDialog: React.FC<PreferencesDialogProps> = ({ isOpen, on
         </div>
 
         {/* Footer */}
-        <div className="flex items-center justify-between border-t px-6 py-3">
+        <div className="flex items-center justify-between border-t border-gray-200 dark:border-gray-700 px-6 py-3">
           <button
             onClick={handleReset}
-            className="rounded border border-gray-300 px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-50"
+            className="rounded border border-gray-300 dark:border-gray-600 px-3 py-1.5 text-sm text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700"
           >
             Reset to Defaults
           </button>
           <div className="flex gap-2">
             <button
               onClick={onClose}
-              className="rounded border border-gray-300 px-4 py-1.5 text-sm text-gray-600 hover:bg-gray-50"
+              className="rounded border border-gray-300 dark:border-gray-600 px-4 py-1.5 text-sm text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700"
             >
               Cancel
             </button>

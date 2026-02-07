@@ -188,6 +188,39 @@ impl ExpansionPipeline {
             snippet: match_result.snippet,
         }))
     }
+
+    /// Performs the full expansion via xdotool type command.
+    pub fn expand_via_xdotool(
+        &self,
+        buffer: &str,
+        current_app: Option<&str>,
+    ) -> Result<Option<ExpansionResult>, ExpansionError> {
+        let match_result = match self.matcher.find_match(buffer, current_app) {
+            Some(m) => m,
+            None => return Ok(None),
+        };
+
+        tracing::info!(
+            "Expanding combo via xdotool: keyword='{}', snippet_len={}",
+            match_result.keyword,
+            match_result.snippet.len()
+        );
+
+        self.substitution.substitute_via_xdotool(
+            match_result.keyword_len,
+            &match_result.snippet,
+        )?;
+
+        if self.play_sound {
+            play_expansion_sound();
+        }
+
+        Ok(Some(ExpansionResult {
+            combo_id: match_result.combo_id,
+            keyword: match_result.keyword,
+            snippet: match_result.snippet,
+        }))
+    }
 }
 
 /// Updates usage statistics for a combo after successful expansion.

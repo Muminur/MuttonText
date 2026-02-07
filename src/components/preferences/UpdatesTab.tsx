@@ -37,7 +37,7 @@ export const UpdatesTab: React.FC<UpdatesTabProps> = ({ preferences, onChange })
 
   return (
     <div className="space-y-6">
-      <h3 className="text-lg font-medium text-gray-900">Updates</h3>
+      <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100">Updates</h3>
 
       <div className="space-y-4">
         <label className="flex items-center gap-3">
@@ -48,10 +48,10 @@ export const UpdatesTab: React.FC<UpdatesTabProps> = ({ preferences, onChange })
             className="h-4 w-4 rounded border-gray-300 text-blue-600"
           />
           <div>
-            <span className="text-sm font-medium text-gray-700">
+            <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
               Automatically check for updates
             </span>
-            <p className="text-xs text-gray-500">
+            <p className="text-xs text-gray-500 dark:text-gray-400">
               Check for new versions when the app starts
             </p>
           </div>
@@ -80,8 +80,8 @@ export const UpdatesTab: React.FC<UpdatesTabProps> = ({ preferences, onChange })
           </div>
         )}
 
-        <div className="rounded border border-gray-200 bg-gray-50 p-3">
-          <p className="text-xs text-gray-500">Current version: 0.1.0</p>
+        <div className="rounded border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-900 p-3">
+          <p className="text-xs text-gray-500 dark:text-gray-400">Current version: 0.1.0</p>
         </div>
       </div>
     </div>

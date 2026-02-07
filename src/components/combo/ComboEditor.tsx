@@ -111,20 +111,20 @@ export function ComboEditor({ open, combo, onSave, onCancel }: ComboEditorProps)
     <Dialog.Root open={open} onOpenChange={(isOpen) => !isOpen && onCancel()}>
       <Dialog.Portal>
         <Dialog.Overlay className="fixed inset-0 bg-black/50" />
-        <Dialog.Content className="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-white rounded-lg shadow-xl p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+        <Dialog.Content className="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-white dark:bg-gray-800 rounded-lg shadow-xl p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
           <div className="flex items-center justify-between mb-4">
-            <Dialog.Title className="text-2xl font-bold">
+            <Dialog.Title className="text-2xl font-bold text-gray-900 dark:text-gray-100">
               {combo ? "Edit Combo" : "Create Combo"}
             </Dialog.Title>
             <button
               onClick={onCancel}
-              className="p-1 hover:bg-gray-100 rounded"
+              className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded"
               aria-label="Close"
             >
               <X className="w-5 h-5" />
             </button>
           </div>
-          <Dialog.Description className="text-gray-600 mb-4">
+          <Dialog.Description className="text-gray-600 dark:text-gray-400 mb-4">
             {combo
               ? "Update the combo details below"
               : "Create a new text expansion combo"}
@@ -133,14 +133,14 @@ export function ComboEditor({ open, combo, onSave, onCancel }: ComboEditorProps)
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
           {/* Name */}
           <div>
-            <label htmlFor="name" className="block text-sm font-medium mb-1">
+            <label htmlFor="name" className="block text-sm font-medium mb-1 text-gray-900 dark:text-gray-100">
               Name *
             </label>
             <input
               id="name"
               type="text"
               {...register("name")}
-              className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
               placeholder="e.g., Email Signature"
             />
             {errors.name && (
@@ -150,28 +150,28 @@ export function ComboEditor({ open, combo, onSave, onCancel }: ComboEditorProps)
 
           {/* Description */}
           <div>
-            <label htmlFor="description" className="block text-sm font-medium mb-1">
+            <label htmlFor="description" className="block text-sm font-medium mb-1 text-gray-900 dark:text-gray-100">
               Description
             </label>
             <input
               id="description"
               type="text"
               {...register("description")}
-              className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
               placeholder="Optional description"
             />
           </div>
 
           {/* Keyword */}
           <div>
-            <label htmlFor="keyword" className="block text-sm font-medium mb-1">
+            <label htmlFor="keyword" className="block text-sm font-medium mb-1 text-gray-900 dark:text-gray-100">
               Keyword *
             </label>
             <input
               id="keyword"
               type="text"
               {...register("keyword")}
-              className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono"
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono"
               placeholder="e.g., sig (no spaces)"
             />
             {errors.keyword && (
@@ -182,7 +182,7 @@ export function ComboEditor({ open, combo, onSave, onCancel }: ComboEditorProps)
           {/* Snippet */}
           <div>
             <div className="flex items-center justify-between mb-1">
-              <label htmlFor="snippet" className="block text-sm font-medium">
+              <label htmlFor="snippet" className="block text-sm font-medium text-gray-900 dark:text-gray-100">
                 Snippet *
               </label>
               <InsertVariableMenu onInsert={insertVariable} />
@@ -203,7 +203,7 @@ export function ComboEditor({ open, combo, onSave, onCancel }: ComboEditorProps)
 
           {/* Group */}
           <div>
-            <label htmlFor="group" className="block text-sm font-medium mb-1">
+            <label htmlFor="group" className="block text-sm font-medium mb-1 text-gray-900 dark:text-gray-100">
               Group *
             </label>
             <Select.Root
@@ -212,7 +212,7 @@ export function ComboEditor({ open, combo, onSave, onCancel }: ComboEditorProps)
             >
               <Select.Trigger
                 id="group"
-                className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 flex items-center justify-between"
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 flex items-center justify-between"
                 aria-label="Group"
               >
                 <Select.Value />
@@ -221,13 +221,13 @@ export function ComboEditor({ open, combo, onSave, onCancel }: ComboEditorProps)
                 </Select.Icon>
               </Select.Trigger>
               <Select.Portal>
-                <Select.Content className="bg-white border rounded-lg shadow-lg">
+                <Select.Content className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-lg shadow-lg">
                   <Select.Viewport className="p-1">
                     {groups.map((group) => (
                       <Select.Item
                         key={group.id}
                         value={group.id}
-                        className="px-3 py-2 hover:bg-gray-100 rounded cursor-pointer flex items-center justify-between"
+                        className="px-3 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded cursor-pointer flex items-center justify-between dark:text-gray-100"
                       >
                         <Select.ItemText>{group.name}</Select.ItemText>
                         <Select.ItemIndicator>
@@ -243,7 +243,7 @@ export function ComboEditor({ open, combo, onSave, onCancel }: ComboEditorProps)
 
           {/* Matching Mode */}
           <div>
-            <label className="block text-sm font-medium mb-2">Matching Mode *</label>
+            <label className="block text-sm font-medium mb-2 text-gray-900 dark:text-gray-100">Matching Mode *</label>
             <div className="space-y-2">
               <label className="flex items-center gap-2">
                 <input
@@ -283,11 +283,11 @@ export function ComboEditor({ open, combo, onSave, onCancel }: ComboEditorProps)
           </div>
 
           {/* Actions */}
-          <div className="flex justify-end gap-2 pt-4 border-t">
+          <div className="flex justify-end gap-2 pt-4 border-t border-gray-200 dark:border-gray-700">
             <button
               type="button"
               onClick={onCancel}
-              className="px-4 py-2 border rounded-lg hover:bg-gray-50"
+              className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-900 dark:text-gray-100"
             >
               Cancel
             </button>

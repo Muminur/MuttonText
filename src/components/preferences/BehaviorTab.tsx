@@ -13,7 +13,7 @@ export const BehaviorTab: React.FC<BehaviorTabProps> = ({ preferences, onChange 
 
   return (
     <div className="space-y-6">
-      <h3 className="text-lg font-medium text-gray-900">Behavior</h3>
+      <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100">Behavior</h3>
 
       <div className="space-y-4">
         <label className="flex items-center gap-3">
@@ -24,8 +24,8 @@ export const BehaviorTab: React.FC<BehaviorTabProps> = ({ preferences, onChange 
             className="h-4 w-4 rounded border-gray-300 text-blue-600"
           />
           <div>
-            <span className="text-sm font-medium text-gray-700">Enable snippet expansion</span>
-            <p className="text-xs text-gray-500">Globally enable or disable combo expansion</p>
+            <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Enable snippet expansion</span>
+            <p className="text-xs text-gray-500 dark:text-gray-400">Globally enable or disable combo expansion</p>
           </div>
         </label>
 
@@ -37,8 +37,8 @@ export const BehaviorTab: React.FC<BehaviorTabProps> = ({ preferences, onChange 
             className="h-4 w-4 rounded border-gray-300 text-blue-600"
           />
           <div>
-            <span className="text-sm font-medium text-gray-700">Play sound on expansion</span>
-            <p className="text-xs text-gray-500">Play a sound when a combo is triggered</p>
+            <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Play sound on expansion</span>
+            <p className="text-xs text-gray-500 dark:text-gray-400">Play a sound when a combo is triggered</p>
           </div>
         </label>
 
@@ -51,12 +51,12 @@ export const BehaviorTab: React.FC<BehaviorTabProps> = ({ preferences, onChange 
             onChange={(e) =>
               update({ defaultMatchingMode: e.target.value as "strict" | "loose" })
             }
-            className="block w-full rounded border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
+            className="block w-full rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
           >
             <option value="strict">Strict (word boundary)</option>
             <option value="loose">Loose (match anywhere)</option>
           </select>
-          <p className="text-xs text-gray-500">
+          <p className="text-xs text-gray-500 dark:text-gray-400">
             Default matching mode for new combos
           </p>
         </div>
@@ -69,8 +69,8 @@ export const BehaviorTab: React.FC<BehaviorTabProps> = ({ preferences, onChange 
             className="h-4 w-4 rounded border-gray-300 text-blue-600"
           />
           <div>
-            <span className="text-sm font-medium text-gray-700">Case-sensitive by default</span>
-            <p className="text-xs text-gray-500">Default case sensitivity for new combos</p>
+            <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Case-sensitive by default</span>
+            <p className="text-xs text-gray-500 dark:text-gray-400">Default case sensitivity for new combos</p>
           </div>
         </label>
       </div>

@@ -170,7 +170,7 @@ export function ComboList() {
   return (
     <div className="flex flex-col h-full">
       {/* Search bar */}
-      <div className="p-4 border-b">
+      <div className="p-4 border-b border-gray-200 dark:border-gray-700">
         <div className="relative">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
           <input
@@ -178,7 +178,7 @@ export function ComboList() {
             placeholder="Search combos..."
             value={searchQuery}
             onChange={(e) => handleSearchChange(e.target.value)}
-            className="w-full pl-10 pr-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
             aria-label="Search combos"
           />
         </div>
@@ -196,7 +196,7 @@ export function ComboList() {
           <>
             {/* Header - grid layout matching rows */}
             <div
-              className="grid items-center bg-gray-50 border-b px-4 py-3 sticky top-0 z-10"
+              className="grid items-center bg-gray-50 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-4 py-3 sticky top-0 z-10"
               style={{ gridTemplateColumns: "40px 1fr 120px 1fr 120px 120px 80px" }}
             >
               <div className="flex items-center justify-center">

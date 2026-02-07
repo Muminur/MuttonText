@@ -5,6 +5,8 @@ import { ComboList } from "./components/combo/ComboList";
 import { PreferencesDialog } from "./components/preferences/PreferencesDialog";
 import { ImportDialog, ExportDialog, BackupManager } from "./components/data";
 import { useGroupStore } from "./stores/groupStore";
+import { usePreferencesStore } from "./stores/preferencesStore";
+import { useTheme } from "./hooks/useTheme";
 
 function App() {
   const [preferencesOpen, setPreferencesOpen] = useState(false);
@@ -12,6 +14,12 @@ function App() {
   const [exportOpen, setExportOpen] = useState(false);
   const [backupsOpen, setBackupsOpen] = useState(false);
   const { selectedGroupId } = useGroupStore();
+  const { preferences, loadPreferences } = usePreferencesStore();
+  useTheme(preferences?.theme);
+
+  useEffect(() => {
+    loadPreferences();
+  }, [loadPreferences]);
 
   const handleKeyDown = useCallback((e: KeyboardEvent) => {
     if ((e.ctrlKey || e.metaKey) && e.key === ",") {

@@ -43,7 +43,7 @@ export function StatusBar() {
   return (
     <div
       role="contentinfo"
-      className="border-t px-4 py-2 bg-gray-50 text-sm text-gray-600 flex items-center justify-between"
+      className="border-t border-gray-200 dark:border-gray-700 px-4 py-2 bg-gray-50 dark:bg-gray-800 text-sm text-gray-600 dark:text-gray-400 flex items-center justify-between"
     >
       <div>
         <span className="font-medium">{combos.length}</span>{" "}
@@ -53,7 +53,7 @@ export function StatusBar() {
       {lastUsedInfo && (
         <div className="text-xs">
           Last used: <span className="font-medium">{lastUsedInfo.name}</span>{" "}
-          <span className="text-gray-500">{lastUsedInfo.time}</span>
+          <span className="text-gray-500 dark:text-gray-400">{lastUsedInfo.time}</span>
         </div>
       )}
     </div>

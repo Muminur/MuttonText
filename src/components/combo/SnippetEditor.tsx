@@ -29,7 +29,7 @@ function highlightVariables(text: string): React.ReactNode[] {
     // Add text before the match
     if (matchIndex > lastIndex) {
       nodes.push(
-        <span key={`text-${i}`} className="text-transparent">
+        <span key={`text-${i}`} className="text-gray-900 dark:text-gray-100">
           {text.substring(lastIndex, matchIndex)}
         </span>
       );
@@ -48,7 +48,7 @@ function highlightVariables(text: string): React.ReactNode[] {
   // Add remaining text
   if (lastIndex < text.length) {
     nodes.push(
-      <span key="text-end" className="text-transparent">
+      <span key="text-end" className="text-gray-900 dark:text-gray-100">
         {text.substring(lastIndex)}
       </span>
     );
@@ -57,7 +57,7 @@ function highlightVariables(text: string): React.ReactNode[] {
   // If no matches, return transparent text
   if (nodes.length === 0) {
     nodes.push(
-      <span key="text-all" className="text-transparent">
+      <span key="text-all" className="text-gray-900 dark:text-gray-100">
         {text}
       </span>
     );
@@ -108,7 +108,7 @@ export const SnippetEditor = forwardRef<HTMLTextAreaElement, SnippetEditorProps>
         >
           {highlightVariables(value)}
           {/* Add trailing newline to match textarea behavior */}
-          {value.endsWith("\n") && <span className="text-transparent">{"\n"}</span>}
+          {value.endsWith("\n") && <span className="text-gray-900 dark:text-gray-100">{"\n"}</span>}
         </div>
 
         {/* Actual textarea */}
@@ -119,8 +119,8 @@ export const SnippetEditor = forwardRef<HTMLTextAreaElement, SnippetEditorProps>
           onChange={handleChange}
           placeholder={placeholder}
           rows={rows}
-          className={`${baseStyles} relative bg-transparent caret-black border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none w-full`}
-          style={{ color: "transparent", caretColor: "black" }}
+          className={`${baseStyles} relative bg-transparent border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none w-full`}
+          style={{ color: "transparent", caretColor: "currentColor" }}
           spellCheck={false}
         />
       </div>
