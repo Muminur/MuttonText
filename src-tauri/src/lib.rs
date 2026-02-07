@@ -13,6 +13,7 @@ use commands::shortcut_commands::ShortcutState;
 use commands::tray_commands::TrayMgrState;
 use commands::preferences_commands::PreferencesState;
 use commands::data_commands::{BackupState, UpdateState};
+use commands::engine_commands::EngineState;
 use managers::combo_manager::ComboManager;
 use managers::combo_storage::ComboStorage;
 use managers::shortcut_manager::ShortcutManager;
@@ -20,6 +21,7 @@ use managers::tray_manager::TrayManager;
 use managers::preferences_manager::PreferencesManager;
 use managers::backup_manager::BackupManager;
 use managers::update_manager::UpdateManager;
+use managers::engine_manager::EngineManager;
 use managers::storage::{get_combos_path, get_preferences_path, get_backups_dir};
 
 /// Initialize the tracing subscriber for structured logging.
@@ -46,6 +48,19 @@ pub fn run() {
     let backup_manager = BackupManager::new(backups_dir, 10);
     let update_manager = UpdateManager::new(env!("CARGO_PKG_VERSION").to_string());
 
+    // Initialize expansion engine
+    let engine_manager = EngineManager::new();
+
+    // Load initial combos and preferences into engine
+    let combos = manager.get_all_combos();
+    engine_manager.load_combos(&combos).expect("Failed to load combos into engine");
+
+    let preferences = preferences_manager.get();
+    engine_manager.apply_preferences(&preferences).expect("Failed to apply preferences to engine");
+
+    // Auto-start engine
+    engine_manager.start().expect("Failed to start expansion engine");
+
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
         .manage(AppState {
@@ -65,6 +80,9 @@ pub fn run() {
         })
         .manage(UpdateState {
             update_manager: Mutex::new(update_manager),
+        })
+        .manage(EngineState {
+            engine: Mutex::new(engine_manager),
         })
         .invoke_handler(tauri::generate_handler![
             // Combo commands
@@ -115,6 +133,13 @@ pub fn run() {
             commands::data_commands::delete_backup,
             commands::data_commands::check_for_updates,
             commands::data_commands::skip_update_version,
+            // Engine commands
+            commands::engine_commands::start_engine,
+            commands::engine_commands::stop_engine,
+            commands::engine_commands::restart_engine,
+            commands::engine_commands::pause_engine,
+            commands::engine_commands::resume_engine,
+            commands::engine_commands::get_engine_status,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

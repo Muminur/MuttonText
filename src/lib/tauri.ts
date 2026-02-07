@@ -157,31 +157,17 @@ export async function searchCombos(query: string): Promise<Combo[]> {
 }
 
 /**
- * Trigger combo expansion (paste snippet)
- */
-export async function triggerComboExpansion(comboId: string): Promise<void> {
-  return invoke("trigger_combo_expansion", { comboId });
-}
-
-/**
- * Copy snippet to clipboard without expansion
- */
-export async function copySnippetToClipboard(comboId: string): Promise<void> {
-  return invoke("copy_snippet_to_clipboard", { comboId });
-}
-
-/**
  * Open the picker window
  */
 export async function openPicker(): Promise<void> {
-  return invoke("open_picker");
+  return invoke("open_picker_window");
 }
 
 /**
  * Close the picker window
  */
 export async function closePicker(): Promise<void> {
-  return invoke("close_picker");
+  return invoke("close_picker_window");
 }
 
 // ========================================

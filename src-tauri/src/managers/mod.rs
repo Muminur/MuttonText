@@ -60,6 +60,10 @@ pub use update_manager::UpdateManager;
 // Milestone 11: Bug fixes and performance
 pub mod bug_fixes;
 
+// Engine orchestration
+pub mod engine_manager;
+pub use engine_manager::{EngineManager, EngineStatus, EngineError};
+
 #[cfg(test)]
 mod tests {
     #[test]

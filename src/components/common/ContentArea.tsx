@@ -1,5 +1,8 @@
 import React from "react";
 import { SearchIcon, PlusIcon, GridIcon, ListIcon } from "lucide-react";
+import { ComboEditor } from "../combo/ComboEditor";
+import { useComboStore } from "@/stores/comboStore";
+import type { CreateComboInput } from "@/lib/types";
 
 interface ContentAreaProps {
   children: React.ReactNode;
@@ -11,6 +14,21 @@ interface ContentAreaProps {
  */
 export const ContentArea: React.FC<ContentAreaProps> = ({ children }) => {
   const [viewMode, setViewMode] = React.useState<"list" | "grid">("list");
+  const [comboEditorOpen, setComboEditorOpen] = React.useState(false);
+  const { createCombo } = useComboStore();
+
+  const handleCreateCombo = async (data: CreateComboInput) => {
+    try {
+      await createCombo(data);
+      setComboEditorOpen(false);
+    } catch (error) {
+      console.error("Failed to create combo:", error);
+    }
+  };
+
+  const handleNewComboClick = () => {
+    setComboEditorOpen(true);
+  };
 
   return (
     <div className="flex h-full flex-col">
@@ -33,7 +51,7 @@ export const ContentArea: React.FC<ContentAreaProps> = ({ children }) => {
         {/* New combo button */}
         <button
           className="flex items-center gap-1 rounded bg-blue-500 px-3 py-1 text-sm text-white hover:bg-blue-600"
-          onClick={() => console.log("New Combo")}
+          onClick={handleNewComboClick}
           data-testid="new-combo-button"
         >
           <PlusIcon size={16} />
@@ -63,6 +81,13 @@ export const ContentArea: React.FC<ContentAreaProps> = ({ children }) => {
 
       {/* Content */}
       <div className="flex-1 overflow-auto p-4">{children}</div>
+
+      {/* Combo Editor Dialog */}
+      <ComboEditor
+        open={comboEditorOpen}
+        onSave={handleCreateCombo}
+        onCancel={() => setComboEditorOpen(false)}
+      />
     </div>
   );
 };
