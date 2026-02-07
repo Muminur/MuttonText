@@ -294,9 +294,6 @@ impl EngineManager {
                         match_result.snippet.len()
                     );
 
-                    // Request buffer clear for the next hook event
-                    state.input_manager.request_buffer_clear();
-
                     // PHASE 3: Perform the actual substitution (while suppressed)
                     if let Some(expansion_result) = Self::perform_expansion(&mut state, match_result) {
                         tracing::info!(
@@ -310,11 +307,16 @@ impl EngineManager {
                         }
                     }
 
-                    // Small delay to ensure xdotool finishes typing before unsuppressing
-                    std::thread::sleep(std::time::Duration::from_millis(100));
-
-                    // PHASE 4: Unsuppress input (lock-free, no deadlock)
-                    state.input_manager.unsuppress();
+                    // PHASE 4: Unsuppress AFTER a delay on a background thread.
+                    // This is critical: the callback runs on the rdev listener thread.
+                    // xdotool events are queued while we're blocked here. When we return,
+                    // the rdev thread processes those queued events. If we unsuppress now,
+                    // those events get captured → buffer accumulates snippet text →
+                    // re-triggers if snippet contains the keyword → infinite loop.
+                    // By unsuppressing on a timer thread, queued events are discarded first.
+                    state.input_manager.unsuppress_after(
+                        std::time::Duration::from_millis(500)
+                    );
                 }
             }
         });

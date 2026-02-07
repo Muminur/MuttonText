@@ -220,6 +220,20 @@ impl InputManager {
         self.needs_buffer_clear.store(true, Ordering::SeqCst);
     }
 
+    /// Unsuppress input and clear buffer after a delay, on a background thread.
+    /// This ensures xdotool-generated events queued on the rdev thread are
+    /// discarded (suppressed) before we resume processing.
+    pub fn unsuppress_after(&self, delay: std::time::Duration) {
+        let suppressed = self.is_suppressed.clone();
+        let needs_clear = self.needs_buffer_clear.clone();
+        std::thread::spawn(move || {
+            std::thread::sleep(delay);
+            needs_clear.store(true, Ordering::SeqCst);
+            suppressed.store(false, Ordering::SeqCst);
+            tracing::debug!("InputManager unsuppressed after delay (lock-free)");
+        });
+    }
+
     /// Get the current buffer contents.
     pub fn buffer(&self) -> String {
         lock_mutex(&self.inner).buffer.clone()
