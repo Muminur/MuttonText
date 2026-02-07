@@ -45,7 +45,8 @@
       "rpm": {
         "depends": [
           "webkit2gtk4.1",
-          "gtk3"
+          "gtk3",
+          "xdotool"
         ]
       },
       "appimage": {

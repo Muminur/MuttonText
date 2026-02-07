@@ -148,7 +148,7 @@ impl LinuxFocusDetector {
     fn get_active_window_id() -> Option<String> {
         use std::process::Command;
 
-        let output = Command::new("/usr/bin/xdotool")
+        let output = Command::new("xdotool")
             .args(["getactivewindow"])
             .output()
             .ok()?;
