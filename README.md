@@ -32,19 +32,33 @@ MuttonText monitors your typing and instantly expands predefined keywords into f
 
 ### Installation
 
+**Linux (Debian/Ubuntu) - `.deb` package:**
+```bash
+# Download latest release
+wget https://github.com/Muminur/MuttonText/releases/latest/download/mutton-text_0.1.0_amd64.deb
+
+# Install
+sudo dpkg -i mutton-text_0.1.0_amd64.deb
+
+# Fix any missing dependencies
+sudo apt install -f
+```
+
 **Linux (AppImage):**
 ```bash
 # Download latest release
-wget https://github.com/yourusername/muttontext/releases/latest/download/muttontext.AppImage
-chmod +x muttontext.AppImage
-./muttontext.AppImage
+wget https://github.com/Muminur/MuttonText/releases/latest/download/mutton-text_0.1.0_amd64.AppImage
+chmod +x mutton-text_0.1.0_amd64.AppImage
+./mutton-text_0.1.0_amd64.AppImage
 ```
 
-**Linux (Debian/Ubuntu):**
+**Linux (Fedora/RPM):**
 ```bash
-# Download and install
-wget https://github.com/yourusername/muttontext/releases/latest/download/muttontext_amd64.deb
-sudo dpkg -i muttontext_amd64.deb
+# Download latest release
+wget https://github.com/Muminur/MuttonText/releases/latest/download/mutton-text-0.1.0-1.x86_64.rpm
+
+# Install
+sudo rpm -i mutton-text-0.1.0-1.x86_64.rpm
 ```
 
 **macOS:**
@@ -52,6 +66,31 @@ sudo dpkg -i muttontext_amd64.deb
 # Download DMG from releases page
 # Drag MuttonText.app to Applications
 # Grant Accessibility and Input Monitoring permissions when prompted
+```
+
+### Uninstallation
+
+**Linux (Debian/Ubuntu):**
+```bash
+sudo apt remove mutton-text
+# Clean up unused dependencies
+sudo apt autoremove
+```
+
+**Linux (Fedora/RPM):**
+```bash
+sudo rpm -e mutton-text
+```
+
+**Linux (AppImage):**
+```bash
+# Simply delete the AppImage file
+rm mutton-text_0.1.0_amd64.AppImage
+```
+
+**macOS:**
+```bash
+# Drag MuttonText.app from Applications to Trash
 ```
 
 ### First Run
@@ -97,8 +136,8 @@ xcode-select --install
 
 ```bash
 # Clone repository
-git clone https://github.com/yourusername/muttontext.git
-cd muttontext
+git clone https://github.com/Muminur/MuttonText.git
+cd MuttonText
 
 # Install dependencies
 npm install
@@ -112,6 +151,9 @@ npm run tauri dev
 
 # Build for production
 npm run tauri build
+
+# Install the built .deb package (Linux)
+sudo dpkg -i src-tauri/target/release/bundle/deb/mutton-text_0.1.0_amd64.deb
 ```
 
 ## Platform Support
@@ -145,4 +187,4 @@ MuttonText is licensed under the [MIT License](LICENSE).
 
 - [Beeftext](https://github.com/xmichelo/Beeftext) - Inspiration and feature reference
 - [Tauri](https://tauri.app/) - Cross-platform framework
-- All our [contributors](https://github.com/yourusername/muttontext/graphs/contributors)
+- All our [contributors](https://github.com/Muminur/MuttonText/graphs/contributors)
