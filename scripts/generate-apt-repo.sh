@@ -3,6 +3,17 @@
 
 set -e
 
+# Check for required commands
+if ! command -v dpkg-scanpackages &> /dev/null; then
+    echo "ERROR: dpkg-scanpackages not found. Install dpkg-dev package."
+    exit 1
+fi
+
+if ! command -v gzip &> /dev/null; then
+    echo "ERROR: gzip not found. Install gzip package."
+    exit 1
+fi
+
 CHANNEL=${1:-stable}  # stable or nightly
 DEB_FILE=${2}
 REPO_DIR=${3:-apt-repo}

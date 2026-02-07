@@ -13,6 +13,18 @@ fi
 
 echo "Deploying to GitHub Pages..."
 
+# Verify we're in a git repository
+if ! git rev-parse --git-dir > /dev/null 2>&1; then
+    echo "ERROR: Not in a git repository"
+    exit 1
+fi
+
+# Check for uncommitted changes
+if [[ -n $(git status --porcelain) ]]; then
+    echo "ERROR: Working tree has uncommitted changes. Commit or stash them first."
+    exit 1
+fi
+
 # Save current branch
 CURRENT_BRANCH=$(git rev-parse --abbrev-ref HEAD)
 
