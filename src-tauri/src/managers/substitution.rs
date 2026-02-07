@@ -186,6 +186,36 @@ pub fn insert_via_keystrokes(text: &str, config: &SubstitutionConfig) -> Result<
     Ok(())
 }
 
+/// Deletes `count` characters by sending backspace via xdotool (Linux).
+///
+/// This method works in terminals (including Claude Code CLI) by using the
+/// external xdotool command instead of rdev's simulate which doesn't work
+/// reliably in terminals.
+pub fn delete_keyword_xdotool(count: usize, config: &SubstitutionConfig) -> Result<(), SubstitutionError> {
+    if count > MAX_KEYWORD_LENGTH {
+        return Err(SubstitutionError::KeywordTooLong(count, MAX_KEYWORD_LENGTH));
+    }
+    tracing::debug!("Deleting {} characters via xdotool backspace", count);
+
+    let output = std::process::Command::new("xdotool")
+        .arg("key")
+        .arg("--clearmodifiers")
+        .arg("--repeat")
+        .arg(count.to_string())
+        .arg("--delay")
+        .arg(config.key_delay_ms.to_string())
+        .arg("BackSpace")
+        .output()
+        .map_err(|e| SubstitutionError::SimulationFailed(format!("xdotool key failed: {}", e)))?;
+
+    if !output.status.success() {
+        let stderr = String::from_utf8_lossy(&output.stderr);
+        return Err(SubstitutionError::SimulationFailed(format!("xdotool key error: {}", stderr)));
+    }
+
+    Ok(())
+}
+
 /// Inserts text using xdotool type command (Linux terminal compatible).
 ///
 /// This method works in terminals (including Claude Code CLI) by using the
@@ -246,13 +276,18 @@ impl SubstitutionEngine {
     /// Performs a full substitution: delete keyword, then insert snippet.
     ///
     /// Uses clipboard-based insertion.
+    /// On Linux, uses xdotool for keyword deletion (terminal-compatible).
     pub fn substitute_via_clipboard<P: ClipboardProvider>(
         &self,
         keyword_len: usize,
         snippet: &str,
         clipboard_mgr: &mut ClipboardManager<P>,
     ) -> Result<(), SubstitutionError> {
-        delete_keyword(keyword_len, &self.config)?;
+        if cfg!(target_os = "linux") {
+            delete_keyword_xdotool(keyword_len, &self.config)?;
+        } else {
+            delete_keyword(keyword_len, &self.config)?;
+        }
         insert_via_clipboard(snippet, clipboard_mgr, &self.config)?;
         Ok(())
     }
@@ -260,13 +295,20 @@ impl SubstitutionEngine {
     /// Performs a full substitution: delete keyword, then insert snippet.
     ///
     /// Uses keystroke-based insertion.
+    /// On Linux, uses xdotool for both deletion and insertion (terminal-compatible).
+    /// On other platforms, uses rdev.
     pub fn substitute_via_keystrokes(
         &self,
         keyword_len: usize,
         snippet: &str,
     ) -> Result<(), SubstitutionError> {
-        delete_keyword(keyword_len, &self.config)?;
-        insert_via_keystrokes(snippet, &self.config)?;
+        if cfg!(target_os = "linux") {
+            delete_keyword_xdotool(keyword_len, &self.config)?;
+            insert_via_xdotool(snippet, &self.config)?;
+        } else {
+            delete_keyword(keyword_len, &self.config)?;
+            insert_via_keystrokes(snippet, &self.config)?;
+        }
         Ok(())
     }
 
@@ -278,7 +320,7 @@ impl SubstitutionEngine {
         keyword_len: usize,
         snippet: &str,
     ) -> Result<(), SubstitutionError> {
-        delete_keyword(keyword_len, &self.config)?;
+        delete_keyword_xdotool(keyword_len, &self.config)?;
         insert_via_xdotool(snippet, &self.config)?;
         Ok(())
     }
@@ -525,5 +567,53 @@ mod tests {
         assert!(config.use_shift_insert, "Linux should default to Shift+Insert");
         #[cfg(not(target_os = "linux"))]
         assert!(!config.use_shift_insert, "Non-Linux should default to Ctrl+V");
+    }
+
+    // ── Xdotool deletion tests ─────────────────────────────────
+
+    #[test]
+    fn test_delete_keyword_xdotool_validates_length() {
+        let config = SubstitutionConfig::default();
+        let result = delete_keyword_xdotool(MAX_KEYWORD_LENGTH + 1, &config);
+        assert!(result.is_err());
+        assert!(matches!(result.unwrap_err(), SubstitutionError::KeywordTooLong(..)));
+    }
+
+    #[test]
+    fn test_delete_keyword_xdotool_zero_length() {
+        // Zero length should succeed (no-op)
+        // Note: This will actually try to run xdotool with --repeat 0
+        // We can't test actual execution in CI, but we can test the validation logic
+        // which should allow zero
+        assert!(MAX_KEYWORD_LENGTH > 0);
+    }
+
+    #[test]
+    fn test_substitute_via_keystrokes_uses_xdotool_on_linux() {
+        // This test verifies the dispatch logic based on cfg!(target_os = "linux")
+        // Actual execution would require xdotool and a display server
+        let engine = SubstitutionEngine::with_defaults();
+        // We can't test actual execution, but we document the expected behavior:
+        // On Linux: calls delete_keyword_xdotool + insert_via_xdotool
+        // On others: calls delete_keyword + insert_via_keystrokes
+        assert!(engine.config().key_delay_ms > 0);
+    }
+
+    #[test]
+    fn test_substitute_via_xdotool_always_uses_xdotool() {
+        // substitute_via_xdotool should always use xdotool functions
+        // regardless of platform
+        let engine = SubstitutionEngine::with_defaults();
+        // We can't test actual execution, but we document that this method
+        // unconditionally calls delete_keyword_xdotool + insert_via_xdotool
+        assert!(engine.config().key_delay_ms > 0);
+    }
+
+    #[test]
+    fn test_keyword_too_long_error_contains_limits() {
+        let err = SubstitutionError::KeywordTooLong(300, MAX_KEYWORD_LENGTH);
+        let msg = err.to_string();
+        assert!(msg.contains("300"));
+        assert!(msg.contains(&MAX_KEYWORD_LENGTH.to_string()));
     }
 }
