@@ -33,7 +33,7 @@ export const ContentArea: React.FC<ContentAreaProps> = ({ children }) => {
   return (
     <div className="flex h-full flex-col">
       {/* Toolbar */}
-      <div className="flex items-center gap-2 border-b bg-white p-2">
+      <div className="flex items-center gap-2 border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-2">
         {/* Search input */}
         <div className="relative flex-1">
           <SearchIcon
@@ -43,7 +43,7 @@ export const ContentArea: React.FC<ContentAreaProps> = ({ children }) => {
           <input
             type="text"
             placeholder="Search combos..."
-            className="w-full rounded border border-gray-300 py-1 pl-8 pr-3 text-sm outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+            className="w-full rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 py-1 pl-8 pr-3 text-sm outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
             data-testid="search-input"
           />
         </div>
@@ -59,9 +59,9 @@ export const ContentArea: React.FC<ContentAreaProps> = ({ children }) => {
         </button>
 
         {/* View toggle */}
-        <div className="flex rounded border border-gray-300">
+        <div className="flex rounded border border-gray-300 dark:border-gray-600">
           <button
-            className={`p-1 ${viewMode === "list" ? "bg-gray-200" : "hover:bg-gray-100"}`}
+            className={`p-1 ${viewMode === "list" ? "bg-gray-200 dark:bg-gray-600" : "hover:bg-gray-100 dark:hover:bg-gray-700"}`}
             onClick={() => setViewMode("list")}
             aria-label="List view"
             data-testid="view-list-button"
@@ -69,7 +69,7 @@ export const ContentArea: React.FC<ContentAreaProps> = ({ children }) => {
             <ListIcon size={16} />
           </button>
           <button
-            className={`p-1 ${viewMode === "grid" ? "bg-gray-200" : "hover:bg-gray-100"}`}
+            className={`p-1 ${viewMode === "grid" ? "bg-gray-200 dark:bg-gray-600" : "hover:bg-gray-100 dark:hover:bg-gray-700"}`}
             onClick={() => setViewMode("grid")}
             aria-label="Grid view"
             data-testid="view-grid-button"

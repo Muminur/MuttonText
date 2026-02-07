@@ -104,7 +104,7 @@ mod tests {
 
     #[test]
     fn test_rdev_key_mapping_special() {
-        assert_eq!(rdev_key_to_key(&rdev::Key::BackSpace), Key::Backspace);
+        assert_eq!(rdev_key_to_key(&rdev::Key::Backspace), Key::Backspace);
         assert_eq!(rdev_key_to_key(&rdev::Key::Return), Key::Enter);
         assert_eq!(rdev_key_to_key(&rdev::Key::F1), Key::F(1));
     }

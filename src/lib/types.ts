@@ -12,8 +12,9 @@ export type MatchingMode = "strict" | "loose";
  * Method for pasting snippets
  * - clipboard: Use system clipboard (faster, more reliable)
  * - simulateKeystrokes: Type out the snippet (for apps that block clipboard)
+ * - xdotoolType: Use xdotool type command (best for terminals on Linux)
  */
-export type PasteMethod = "clipboard" | "simulateKeystrokes";
+export type PasteMethod = "clipboard" | "simulateKeystrokes" | "xdotoolType";
 
 /**
  * Application theme

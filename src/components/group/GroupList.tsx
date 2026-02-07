@@ -71,7 +71,7 @@ export const GroupList: React.FC<GroupListProps> = ({
         className={`cursor-pointer rounded px-3 py-2 ${
           selectedGroupId === null
             ? "bg-blue-500 text-white"
-            : "hover:bg-gray-200"
+            : "hover:bg-gray-200 dark:hover:bg-gray-700"
         }`}
         onClick={() => onSelectGroup(null)}
         onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onSelectGroup(null); } }}
@@ -86,7 +86,7 @@ export const GroupList: React.FC<GroupListProps> = ({
             className={`rounded-full px-2 py-0.5 text-xs ${
               selectedGroupId === null
                 ? "bg-blue-600 text-white"
-                : "bg-gray-200 text-gray-700"
+                : "bg-gray-200 dark:bg-gray-600 text-gray-700 dark:text-gray-300"
             }`}
           >
             {totalComboCount}

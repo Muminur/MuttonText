@@ -180,6 +180,7 @@ impl Default for ShortcutManager {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::sync::Mutex;
     use std::sync::atomic::{AtomicBool, Ordering};
 
     #[test]

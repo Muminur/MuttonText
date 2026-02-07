@@ -53,7 +53,7 @@ export const GroupItem: React.FC<GroupItemProps> = ({
         <ContextMenu.Trigger asChild>
           <div
             className={`cursor-pointer rounded px-3 py-2 ${
-              isSelected ? "bg-blue-500 text-white" : "hover:bg-gray-200"
+              isSelected ? "bg-blue-500 text-white" : "hover:bg-gray-200 dark:hover:bg-gray-700"
             } ${!group.enabled ? "opacity-50" : ""}`}
             onClick={onSelect}
             onDoubleClick={onEdit}
@@ -78,7 +78,7 @@ export const GroupItem: React.FC<GroupItemProps> = ({
                 className={`rounded-full px-2 py-0.5 text-xs ${
                   isSelected
                     ? "bg-blue-600 text-white"
-                    : "bg-gray-200 text-gray-700"
+                    : "bg-gray-200 dark:bg-gray-600 text-gray-700 dark:text-gray-300"
                 }`}
               >
                 {comboCount}
@@ -87,7 +87,7 @@ export const GroupItem: React.FC<GroupItemProps> = ({
             {group.description && (
               <p
                 className={`mt-1 truncate text-xs ${
-                  isSelected ? "text-blue-100" : "text-gray-500"
+                  isSelected ? "text-blue-100" : "text-gray-500 dark:text-gray-400"
                 } ml-6`}
               >
                 {group.description}
@@ -98,24 +98,24 @@ export const GroupItem: React.FC<GroupItemProps> = ({
 
         <ContextMenu.Portal>
           <ContextMenu.Content
-            className="min-w-[180px] rounded border bg-white shadow-md"
+            className="min-w-[180px] rounded border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-800 shadow-md"
             data-testid="group-context-menu"
           >
             <ContextMenu.Item
-              className="cursor-pointer px-3 py-2 text-sm outline-none hover:bg-gray-100"
+              className="cursor-pointer px-3 py-2 text-sm outline-none hover:bg-gray-100 dark:hover:bg-gray-700 dark:text-gray-100"
               onSelect={onEdit}
             >
               Edit
             </ContextMenu.Item>
             <ContextMenu.Item
-              className="cursor-pointer px-3 py-2 text-sm outline-none hover:bg-gray-100"
+              className="cursor-pointer px-3 py-2 text-sm outline-none hover:bg-gray-100 dark:hover:bg-gray-700 dark:text-gray-100"
               onSelect={onToggle}
             >
               {group.enabled ? "Disable" : "Enable"}
             </ContextMenu.Item>
-            <ContextMenu.Separator className="my-1 h-px bg-gray-200" />
+            <ContextMenu.Separator className="my-1 h-px bg-gray-200 dark:bg-gray-600" />
             <ContextMenu.Item
-              className="cursor-pointer px-3 py-2 text-sm text-red-600 outline-none hover:bg-gray-100"
+              className="cursor-pointer px-3 py-2 text-sm text-red-600 dark:text-red-400 outline-none hover:bg-gray-100 dark:hover:bg-gray-700"
               onSelect={onDelete}
             >
               Delete

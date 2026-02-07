@@ -86,8 +86,8 @@ export function ComboItem({ combo, onEdit }: ComboItemProps) {
     <ContextMenu>
       <ContextMenuTrigger asChild>
         <div
-          className={`grid items-center border-b hover:bg-gray-50 cursor-pointer px-4 py-2 ${
-            isSelected ? "bg-blue-50" : ""
+          className={`grid items-center border-b border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer px-4 py-2 ${
+            isSelected ? "bg-blue-50 dark:bg-blue-900/30" : ""
           }`}
           style={{ gridTemplateColumns: "40px 1fr 120px 1fr 120px 120px 80px" }}
           onClick={handleClick}
@@ -112,7 +112,7 @@ export function ComboItem({ combo, onEdit }: ComboItemProps) {
             )}
           </div>
           <div className="py-1">
-            <code className="px-2 py-1 bg-gray-100 rounded text-sm font-mono">
+            <code className="px-2 py-1 bg-gray-100 dark:bg-gray-700 rounded text-sm font-mono">
               {combo.keyword}
             </code>
           </div>
@@ -149,31 +149,31 @@ export function ComboItem({ combo, onEdit }: ComboItemProps) {
         </div>
       </ContextMenuTrigger>
 
-      <ContextMenuContent className="bg-white border rounded-lg shadow-lg p-1 min-w-[200px]">
+      <ContextMenuContent className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-lg shadow-lg p-1 min-w-[200px]">
         <ContextMenuItem
-          className="px-3 py-2 hover:bg-gray-100 rounded cursor-pointer flex items-center gap-2"
+          className="px-3 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded cursor-pointer flex items-center gap-2 dark:text-gray-100"
           onSelect={() => onEdit?.(combo)}
         >
           <Edit className="w-4 h-4" />
           Edit
         </ContextMenuItem>
         <ContextMenuItem
-          className="px-3 py-2 hover:bg-gray-100 rounded cursor-pointer flex items-center gap-2"
+          className="px-3 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded cursor-pointer flex items-center gap-2 dark:text-gray-100"
           onSelect={handleDuplicate}
         >
           <Copy className="w-4 h-4" />
           Duplicate
         </ContextMenuItem>
         <ContextMenuItem
-          className="px-3 py-2 hover:bg-gray-100 rounded cursor-pointer flex items-center gap-2"
+          className="px-3 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded cursor-pointer flex items-center gap-2 dark:text-gray-100"
           onSelect={() => console.log("Move to Group")}
         >
           <FolderOpen className="w-4 h-4" />
           Move to Group
         </ContextMenuItem>
-        <ContextMenuSeparator className="h-px bg-gray-200 my-1" />
+        <ContextMenuSeparator className="h-px bg-gray-200 dark:bg-gray-600 my-1" />
         <ContextMenuItem
-          className="px-3 py-2 hover:bg-gray-100 rounded cursor-pointer flex items-center gap-2"
+          className="px-3 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded cursor-pointer flex items-center gap-2 dark:text-gray-100"
           onSelect={handleToggleEnabled}
         >
           {combo.enabled ? (
@@ -188,9 +188,9 @@ export function ComboItem({ combo, onEdit }: ComboItemProps) {
             </>
           )}
         </ContextMenuItem>
-        <ContextMenuSeparator className="h-px bg-gray-200 my-1" />
+        <ContextMenuSeparator className="h-px bg-gray-200 dark:bg-gray-600 my-1" />
         <ContextMenuItem
-          className="px-3 py-2 hover:bg-red-100 text-red-600 rounded cursor-pointer flex items-center gap-2"
+          className="px-3 py-2 hover:bg-red-100 dark:hover:bg-red-900/30 text-red-600 dark:text-red-400 rounded cursor-pointer flex items-center gap-2"
           onSelect={handleDelete}
         >
           <Trash2 className="w-4 h-4" />

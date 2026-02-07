@@ -10,6 +10,8 @@ pub enum PasteMethod {
     Clipboard,
     /// Simulate individual keystrokes to type the snippet.
     SimulateKeystrokes,
+    /// Use xdotool type command (Linux only, works in terminals).
+    XdotoolType,
 }
 
 impl Default for PasteMethod {
@@ -92,11 +94,22 @@ mod tests {
 
     #[test]
     fn test_paste_method_serialization_roundtrip() {
-        for method in &[PasteMethod::Clipboard, PasteMethod::SimulateKeystrokes] {
+        for method in &[
+            PasteMethod::Clipboard,
+            PasteMethod::SimulateKeystrokes,
+            PasteMethod::XdotoolType,
+        ] {
             let json = serde_json::to_string(method).expect("serialize");
             let deserialized: PasteMethod = serde_json::from_str(&json).expect("deserialize");
             assert_eq!(*method, deserialized);
         }
+    }
+
+    #[test]
+    fn test_paste_method_xdotool_serializes_as_camel_case() {
+        let method = PasteMethod::XdotoolType;
+        let json = serde_json::to_string(&method).expect("serialize");
+        assert_eq!(json, "\"xdotoolType\"");
     }
 
     // ── Theme tests ─────────────────────────────────────────────────

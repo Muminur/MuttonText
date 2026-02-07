@@ -78,7 +78,7 @@ export const Sidebar: React.FC = () => {
 
   return (
     <>
-      <div className="flex h-full flex-col bg-gray-50" role="navigation" aria-label="Group navigation">
+      <div className="flex h-full flex-col bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-gray-100" role="navigation" aria-label="Group navigation">
         {/* Group list area */}
         <div className="flex-1 overflow-auto p-2" data-testid="group-list-area">
           <GroupList
@@ -95,7 +95,7 @@ export const Sidebar: React.FC = () => {
         </div>
 
         {/* Add Group button at bottom */}
-        <div className="border-t bg-white p-2">
+        <div className="border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-2">
           <button
             className="flex w-full items-center justify-center gap-1 rounded bg-blue-500 py-2 text-sm text-white hover:bg-blue-600"
             onClick={handleAddGroup}

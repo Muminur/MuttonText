@@ -58,7 +58,7 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ children, onOpenPreferen
   }, [isResizing, sidebarWidth]);
 
   return (
-    <div className="flex h-screen flex-col">
+    <div className="flex h-screen flex-col bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100">
       <MenuBar onOpenPreferences={onOpenPreferences} onOpenImport={onOpenImport} onOpenExport={onOpenExport} onOpenBackups={onOpenBackups} />
 
       {/* Main content area with resizable sidebar */}
@@ -66,7 +66,7 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ children, onOpenPreferen
         {/* Sidebar with fixed width */}
         <div
           style={{ width: `${sidebarWidth}px` }}
-          className="relative border-r bg-gray-50"
+          className="relative border-r border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800"
           data-testid="sidebar-slot"
         >
           <Sidebar />

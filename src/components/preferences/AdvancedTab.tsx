@@ -34,29 +34,30 @@ export const AdvancedTab: React.FC<AdvancedTabProps> = ({ preferences, onChange 
 
   return (
     <div className="space-y-6">
-      <h3 className="text-lg font-medium text-gray-900">Advanced</h3>
+      <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100">Advanced</h3>
 
       <div className="space-y-4">
         <div className="space-y-2">
-          <label className="block text-sm font-medium text-gray-700">Paste method</label>
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Paste method</label>
           <select
             value={preferences.pasteMethod}
             onChange={(e) =>
-              update({ pasteMethod: e.target.value as "clipboard" | "simulateKeystrokes" })
+              update({ pasteMethod: e.target.value as "clipboard" | "simulateKeystrokes" | "xdotoolType" })
             }
-            className="block w-full rounded border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
+            className="block w-full rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
           >
-            <option value="clipboard">Clipboard (recommended)</option>
+            <option value="clipboard">Clipboard + Shift+Insert (recommended)</option>
             <option value="simulateKeystrokes">Simulate keystrokes</option>
+            <option value="xdotoolType">xdotool type (best for terminals)</option>
           </select>
-          <p className="text-xs text-gray-500">
-            How expanded text is pasted. Use keystrokes for apps that block clipboard access.
+          <p className="text-xs text-gray-500 dark:text-gray-400">
+            How expanded text is pasted. Use xdotool for terminals or keystrokes for apps that block clipboard.
           </p>
         </div>
 
         <div className="space-y-2">
-          <label className="block text-sm font-medium text-gray-700">Excluded applications</label>
-          <p className="text-xs text-gray-500">
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Excluded applications</label>
+          <p className="text-xs text-gray-500 dark:text-gray-400">
             Combos will not expand in these applications.
           </p>
 
@@ -67,7 +68,7 @@ export const AdvancedTab: React.FC<AdvancedTabProps> = ({ preferences, onChange 
               onChange={(e) => setNewApp(e.target.value)}
               onKeyDown={handleKeyDown}
               placeholder="Application name (e.g. code.exe)"
-              className="flex-1 rounded border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
+              className="flex-1 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
             />
             <button
               onClick={handleAddApp}
@@ -83,7 +84,7 @@ export const AdvancedTab: React.FC<AdvancedTabProps> = ({ preferences, onChange 
               {preferences.excludedApps.map((app) => (
                 <li
                   key={app}
-                  className="flex items-center justify-between rounded border border-gray-200 bg-gray-50 px-3 py-1.5 text-sm"
+                  className="flex items-center justify-between rounded border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-900 px-3 py-1.5 text-sm"
                 >
                   <span>{app}</span>
                   <button

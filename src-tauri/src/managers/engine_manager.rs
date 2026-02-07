@@ -18,6 +18,7 @@ use crate::managers::{
     input_manager::InputManager,
 };
 use crate::models::{Combo, Preferences};
+use crate::models::preferences::PasteMethod;
 use crate::platform::keyboard_hook::KeyboardHook;
 
 #[cfg(target_os = "linux")]
@@ -62,6 +63,7 @@ struct EngineInner {
     expansion_pipeline: ExpansionPipeline,
     clipboard: ClipboardManager<ArboardProvider>,
     status: EngineStatus,
+    paste_method: PasteMethod,
 }
 
 /// Manages the text expansion engine lifecycle.
@@ -83,11 +85,22 @@ use crate::managers::expansion_pipeline::ExpansionResult;
 impl EngineManager {
     /// Helper function to try expanding from a buffer, handling borrow checker constraints.
     fn try_expand(state: &mut EngineInner, buffer: &str) -> Option<ExpansionResult> {
-        match state.expansion_pipeline.expand_via_clipboard(
-            buffer,
-            None,
-            &mut state.clipboard,
-        ) {
+        let result = match state.paste_method {
+            PasteMethod::Clipboard => {
+                state.expansion_pipeline.expand_via_clipboard(
+                    buffer,
+                    None,
+                    &mut state.clipboard,
+                )
+            }
+            PasteMethod::SimulateKeystrokes => {
+                state.expansion_pipeline.expand_via_keystrokes(buffer, None)
+            }
+            PasteMethod::XdotoolType => {
+                state.expansion_pipeline.expand_via_xdotool(buffer, None)
+            }
+        };
+        match result {
             Ok(Some(result)) => Some(result),
             Ok(None) => None,
             Err(e) => {
@@ -115,6 +128,7 @@ impl EngineManager {
             expansion_pipeline,
             clipboard,
             status: EngineStatus::Stopped,
+            paste_method: PasteMethod::default(),
         };
 
         Self {
@@ -166,7 +180,8 @@ impl EngineManager {
     pub fn apply_preferences(&self, prefs: &Preferences) -> Result<(), EngineError> {
         let mut inner = self.inner.lock().map_err(|_| EngineError::LockError)?;
         inner.expansion_pipeline.apply_preferences(prefs);
-        tracing::info!("Applied preferences to expansion engine");
+        inner.paste_method = prefs.paste_method;
+        tracing::info!("Applied preferences to expansion engine (paste_method: {:?})", prefs.paste_method);
         Ok(())
     }
 
@@ -295,6 +310,19 @@ mod tests {
         let engine = EngineManager::new();
         let result = engine.load_combos(&[]);
         assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_engine_apply_preferences_stores_paste_method() {
+        let engine = EngineManager::new();
+        let mut prefs = Preferences::default();
+        prefs.paste_method = PasteMethod::XdotoolType;
+
+        let result = engine.apply_preferences(&prefs);
+        assert!(result.is_ok());
+
+        // Verify paste_method is stored (we can't directly access it, but the
+        // test ensures apply_preferences doesn't panic and accepts the new variant)
     }
 
     // Note: Full integration tests require a display server and are

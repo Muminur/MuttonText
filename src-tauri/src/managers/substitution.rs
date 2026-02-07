@@ -81,7 +81,7 @@ impl Default for SubstitutionConfig {
         Self {
             key_delay_ms: 5,
             paste_restore_delay_ms: 50,
-            use_shift_insert: false,
+            use_shift_insert: cfg!(target_os = "linux"),
             timeout_secs: DEFAULT_SUBSTITUTION_TIMEOUT_SECS,
             chunk_delay_ms: 10,
         }
@@ -186,6 +186,35 @@ pub fn insert_via_keystrokes(text: &str, config: &SubstitutionConfig) -> Result<
     Ok(())
 }
 
+/// Inserts text using xdotool type command (Linux terminal compatible).
+///
+/// This method works in terminals (including Claude Code CLI) by using the
+/// external xdotool command instead of rdev's Key::Unknown which doesn't work
+/// in terminals.
+pub fn insert_via_xdotool(text: &str, config: &SubstitutionConfig) -> Result<(), SubstitutionError> {
+    if text.len() > MAX_SNIPPET_SIZE {
+        return Err(SubstitutionError::SnippetTooLarge(text.len(), MAX_SNIPPET_SIZE));
+    }
+    tracing::debug!("Inserting via xdotool: {} chars", text.len());
+
+    let output = std::process::Command::new("xdotool")
+        .arg("type")
+        .arg("--clearmodifiers")
+        .arg("--delay")
+        .arg(config.key_delay_ms.to_string())
+        .arg("--")
+        .arg(text)
+        .output()
+        .map_err(|e| SubstitutionError::SimulationFailed(format!("xdotool failed: {}", e)))?;
+
+    if !output.status.success() {
+        let stderr = String::from_utf8_lossy(&output.stderr);
+        return Err(SubstitutionError::SimulationFailed(format!("xdotool error: {}", stderr)));
+    }
+
+    Ok(())
+}
+
 /// Represents a complete substitution operation.
 pub struct SubstitutionEngine {
     config: SubstitutionConfig,
@@ -238,6 +267,19 @@ impl SubstitutionEngine {
     ) -> Result<(), SubstitutionError> {
         delete_keyword(keyword_len, &self.config)?;
         insert_via_keystrokes(snippet, &self.config)?;
+        Ok(())
+    }
+
+    /// Performs a full substitution: delete keyword, then insert snippet.
+    ///
+    /// Uses xdotool type command (Linux terminal compatible).
+    pub fn substitute_via_xdotool(
+        &self,
+        keyword_len: usize,
+        snippet: &str,
+    ) -> Result<(), SubstitutionError> {
+        delete_keyword(keyword_len, &self.config)?;
+        insert_via_xdotool(snippet, &self.config)?;
         Ok(())
     }
 }
@@ -329,7 +371,7 @@ mod tests {
         let config = SubstitutionConfig::default();
         assert_eq!(config.key_delay_ms, 5);
         assert_eq!(config.paste_restore_delay_ms, 50);
-        assert!(!config.use_shift_insert);
+        // use_shift_insert is platform-specific, test separately
     }
 
     #[test]
@@ -472,5 +514,16 @@ mod tests {
     fn test_noop_focus_checker() {
         let checker = NoOpFocusChecker;
         assert!(checker.is_target_focused());
+    }
+
+    // ── Platform-specific defaults ─────────────────────────────
+
+    #[test]
+    fn test_config_use_shift_insert_default_linux() {
+        let config = SubstitutionConfig::default();
+        #[cfg(target_os = "linux")]
+        assert!(config.use_shift_insert, "Linux should default to Shift+Insert");
+        #[cfg(not(target_os = "linux"))]
+        assert!(!config.use_shift_insert, "Non-Linux should default to Ctrl+V");
     }
 }
