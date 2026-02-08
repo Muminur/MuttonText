@@ -689,4 +689,91 @@ mod tests {
         let json = serde_json::to_string(&ConflictResolution::Rename).unwrap();
         assert_eq!(json, r#""rename""#);
     }
+
+    // ── Beeftext CSV Real-World Formats ─────────────────────────────────
+
+    #[test]
+    fn test_import_beeftext_csv_multiple_rows() {
+        let content = "Name,Keyword,Snippet,MatchingMode,Group\nEmail Sig,esig,Best regards John,strict,Email\nAddress,addr,123 Main St,loose,Personal\nPhone,phn,555-1234,strict,Personal";
+        let result = ImportManager::import_beeftext_csv(content, ConflictResolution::Skip).unwrap();
+        assert_eq!(result.imported_count, 3);
+        assert_eq!(result.groups.len(), 2); // Email + Personal
+        assert_eq!(result.combos[0].keyword, "esig");
+        assert_eq!(result.combos[1].matching_mode, MatchingMode::Loose);
+    }
+
+    #[test]
+    fn test_import_beeftext_csv_quoted_fields_with_commas() {
+        let content = "Name,Keyword,Snippet,MatchingMode,Group\nGreeting,grt,\"Hello, World!\",strict,General";
+        let result = ImportManager::import_beeftext_csv(content, ConflictResolution::Skip).unwrap();
+        assert_eq!(result.imported_count, 1);
+        assert_eq!(result.combos[0].snippet, "Hello, World!");
+    }
+
+    #[test]
+    fn test_import_beeftext_csv_missing_optional_columns() {
+        // Only 3 columns: Name, Keyword, Snippet (no MatchingMode or Group)
+        let content = "Name,Keyword,Snippet\nSig,sig,hello";
+        let result = ImportManager::import_beeftext_csv(content, ConflictResolution::Skip).unwrap();
+        assert_eq!(result.imported_count, 1);
+        assert_eq!(result.combos[0].matching_mode, MatchingMode::Strict); // default
+        assert_eq!(result.groups.len(), 0); // no group column
+    }
+
+    #[test]
+    fn test_import_beeftext_csv_empty_rows_skipped() {
+        let content = "Name,Keyword,Snippet,MatchingMode,Group\nSig,sig,hello,strict,G1\n\n\nAddr,addr,123 Main,loose,G1";
+        let result = ImportManager::import_beeftext_csv(content, ConflictResolution::Skip).unwrap();
+        assert_eq!(result.imported_count, 2);
+    }
+
+    #[test]
+    fn test_import_beeftext_csv_unicode_content() {
+        let content = "Name,Keyword,Snippet,MatchingMode,Group\nGreet,hlo,Hello World,strict,Fun";
+        let result = ImportManager::import_beeftext_csv(content, ConflictResolution::Skip).unwrap();
+        assert_eq!(result.imported_count, 1);
+        assert!(result.combos[0].snippet.contains("Hello"));
+    }
+
+    #[test]
+    fn test_import_beeftext_csv_conflict_overwrite() {
+        let content = "Name,Keyword,Snippet,MatchingMode,Group\nSig,sig,hello,strict,G1";
+        let result = ImportManager::import_beeftext_csv(content, ConflictResolution::Overwrite).unwrap();
+        assert_eq!(result.imported_count, 1);
+        assert_eq!(result.combos[0].keyword, "sig"); // not renamed
+    }
+
+    #[test]
+    fn test_import_beeftext_csv_whitespace_trimmed() {
+        let content = "Name,Keyword,Snippet,MatchingMode,Group\n  Sig  ,  sig  ,  hello world  , strict , Email ";
+        let result = ImportManager::import_beeftext_csv(content, ConflictResolution::Skip).unwrap();
+        assert_eq!(result.imported_count, 1);
+        assert_eq!(result.combos[0].keyword, "sig");
+        assert_eq!(result.combos[0].snippet, "hello world");
+    }
+
+    #[test]
+    fn test_import_beeftext_csv_group_deduplication() {
+        let content = "Name,Keyword,Snippet,MatchingMode,Group\nA,ka,sa,strict,Shared\nB,kb,sb,strict,Shared\nC,kc,sc,strict,Other";
+        let result = ImportManager::import_beeftext_csv(content, ConflictResolution::Skip).unwrap();
+        assert_eq!(result.imported_count, 3);
+        assert_eq!(result.groups.len(), 2); // Shared + Other (deduplicated)
+        assert_eq!(result.combos[0].group_id, result.combos[1].group_id);
+        assert_ne!(result.combos[0].group_id, result.combos[2].group_id);
+    }
+
+    #[test]
+    fn test_detect_format_beeftext_csv_case_insensitive() {
+        let content = "NAME,KEYWORD,SNIPPET,MATCHINGMODE,GROUP\nSig,sig,hello,strict,G1";
+        let fmt = ImportManager::detect_format(content).unwrap();
+        assert_eq!(fmt, ImportFormat::BeeftextCsv);
+    }
+
+    #[test]
+    fn test_import_beeftext_csv_quoted_snippet_with_embedded_quotes() {
+        let content = "Name,Keyword,Snippet,MatchingMode,Group\nQuote,qt,\"She said \"\"hello\"\"\",strict,G1";
+        let result = ImportManager::import_beeftext_csv(content, ConflictResolution::Skip).unwrap();
+        assert_eq!(result.imported_count, 1);
+        assert_eq!(result.combos[0].snippet, "She said \"hello\"");
+    }
 }

@@ -329,4 +329,183 @@ mod tests {
         let result = mgr.update(prefs);
         assert!(result.is_ok());
     }
+
+    // ── Per-Field Save/Load Roundtrip ───────────────────────────────
+
+    #[test]
+    fn test_every_field_save_load_roundtrip() {
+        use crate::models::preferences::{PasteMethod, Theme};
+        use crate::models::matching::MatchingMode;
+
+        let tmp = tempfile::tempdir().unwrap();
+        let path = tmp.path().join("prefs.json");
+        let mut mgr = PreferencesManager::new(path.clone()).unwrap();
+
+        let custom = Preferences {
+            enabled: false,
+            play_sound: true,
+            show_system_tray: false,
+            start_at_login: true,
+            start_minimized: true,
+            default_matching_mode: MatchingMode::Loose,
+            default_case_sensitive: true,
+            combo_trigger_shortcut: "Ctrl+Shift+E".to_string(),
+            picker_shortcut: "Ctrl+Alt+P".to_string(),
+            paste_method: PasteMethod::SimulateKeystrokes,
+            theme: Theme::Dark,
+            backup_enabled: false,
+            backup_interval_hours: 48,
+            max_backups: 25,
+            auto_check_updates: false,
+            excluded_apps: vec!["1password".to_string(), "keepass".to_string()],
+        };
+        mgr.update(custom.clone()).unwrap();
+
+        let loaded = PreferencesManager::load(&path).unwrap();
+        assert_eq!(loaded.enabled, false);
+        assert_eq!(loaded.play_sound, true);
+        assert_eq!(loaded.show_system_tray, false);
+        assert_eq!(loaded.start_at_login, true);
+        assert_eq!(loaded.start_minimized, true);
+        assert_eq!(loaded.default_matching_mode, MatchingMode::Loose);
+        assert_eq!(loaded.default_case_sensitive, true);
+        assert_eq!(loaded.combo_trigger_shortcut, "Ctrl+Shift+E");
+        assert_eq!(loaded.picker_shortcut, "Ctrl+Alt+P");
+        assert_eq!(loaded.paste_method, PasteMethod::SimulateKeystrokes);
+        assert_eq!(loaded.theme, Theme::Dark);
+        assert_eq!(loaded.backup_enabled, false);
+        assert_eq!(loaded.backup_interval_hours, 48);
+        assert_eq!(loaded.max_backups, 25);
+        assert_eq!(loaded.auto_check_updates, false);
+        assert_eq!(loaded.excluded_apps, vec!["1password", "keepass"]);
+    }
+
+    #[test]
+    fn test_paste_method_xdotool_type_roundtrip() {
+        use crate::models::preferences::PasteMethod;
+
+        let tmp = tempfile::tempdir().unwrap();
+        let path = tmp.path().join("prefs.json");
+        let mut mgr = PreferencesManager::new(path.clone()).unwrap();
+
+        let mut prefs = Preferences::default();
+        prefs.paste_method = PasteMethod::XdotoolType;
+        mgr.update(prefs).unwrap();
+
+        let loaded = PreferencesManager::load(&path).unwrap();
+        assert_eq!(loaded.paste_method, PasteMethod::XdotoolType);
+    }
+
+    #[test]
+    fn test_theme_variants_roundtrip() {
+        use crate::models::preferences::Theme;
+
+        let tmp = tempfile::tempdir().unwrap();
+        let path = tmp.path().join("prefs.json");
+        let mut mgr = PreferencesManager::new(path.clone()).unwrap();
+
+        for theme in [Theme::System, Theme::Light, Theme::Dark] {
+            let mut prefs = Preferences::default();
+            prefs.theme = theme;
+            mgr.update(prefs).unwrap();
+
+            let loaded = PreferencesManager::load(&path).unwrap();
+            assert_eq!(loaded.theme, theme, "Theme {:?} failed roundtrip", theme);
+        }
+    }
+
+    #[test]
+    fn test_paste_method_variants_roundtrip() {
+        use crate::models::preferences::PasteMethod;
+
+        let tmp = tempfile::tempdir().unwrap();
+        let path = tmp.path().join("prefs.json");
+        let mut mgr = PreferencesManager::new(path.clone()).unwrap();
+
+        for method in [PasteMethod::Clipboard, PasteMethod::SimulateKeystrokes, PasteMethod::XdotoolType] {
+            let mut prefs = Preferences::default();
+            prefs.paste_method = method;
+            mgr.update(prefs).unwrap();
+
+            let loaded = PreferencesManager::load(&path).unwrap();
+            assert_eq!(loaded.paste_method, method, "PasteMethod {:?} failed roundtrip", method);
+        }
+    }
+
+    #[test]
+    fn test_matching_mode_variants_roundtrip() {
+        use crate::models::matching::MatchingMode;
+
+        let tmp = tempfile::tempdir().unwrap();
+        let path = tmp.path().join("prefs.json");
+        let mut mgr = PreferencesManager::new(path.clone()).unwrap();
+
+        for mode in [MatchingMode::Strict, MatchingMode::Loose] {
+            let mut prefs = Preferences::default();
+            prefs.default_matching_mode = mode;
+            mgr.update(prefs).unwrap();
+
+            let loaded = PreferencesManager::load(&path).unwrap();
+            assert_eq!(loaded.default_matching_mode, mode, "MatchingMode {:?} failed roundtrip", mode);
+        }
+    }
+
+    #[test]
+    fn test_defaults_are_correct() {
+        use crate::models::preferences::{PasteMethod, Theme};
+        use crate::models::matching::MatchingMode;
+
+        let prefs = Preferences::default();
+        assert_eq!(prefs.enabled, true);
+        assert_eq!(prefs.play_sound, false);
+        assert_eq!(prefs.show_system_tray, true);
+        assert_eq!(prefs.start_at_login, false);
+        assert_eq!(prefs.start_minimized, false);
+        assert_eq!(prefs.default_matching_mode, MatchingMode::Strict);
+        assert_eq!(prefs.default_case_sensitive, false);
+        assert_eq!(prefs.combo_trigger_shortcut, "");
+        assert_eq!(prefs.picker_shortcut, "Ctrl+Shift+Space");
+        assert_eq!(prefs.paste_method, PasteMethod::Clipboard);
+        assert_eq!(prefs.theme, Theme::System);
+        assert_eq!(prefs.backup_enabled, true);
+        assert_eq!(prefs.backup_interval_hours, 24);
+        assert_eq!(prefs.max_backups, 10);
+        assert_eq!(prefs.auto_check_updates, true);
+        assert!(prefs.excluded_apps.is_empty());
+    }
+
+    #[test]
+    fn test_reset_restores_all_fields() {
+        use crate::models::preferences::{PasteMethod, Theme};
+        use crate::models::matching::MatchingMode;
+
+        let tmp = tempfile::tempdir().unwrap();
+        let path = tmp.path().join("prefs.json");
+        let mut mgr = PreferencesManager::new(path).unwrap();
+
+        let custom = Preferences {
+            enabled: false,
+            play_sound: true,
+            show_system_tray: false,
+            start_at_login: true,
+            start_minimized: true,
+            default_matching_mode: MatchingMode::Loose,
+            default_case_sensitive: true,
+            combo_trigger_shortcut: "Ctrl+X".to_string(),
+            picker_shortcut: "Alt+P".to_string(),
+            paste_method: PasteMethod::XdotoolType,
+            theme: Theme::Dark,
+            backup_enabled: false,
+            backup_interval_hours: 72,
+            max_backups: 50,
+            auto_check_updates: false,
+            excluded_apps: vec!["app1".to_string()],
+        };
+        mgr.update(custom).unwrap();
+
+        mgr.reset_to_defaults().unwrap();
+
+        let prefs = mgr.get();
+        assert_eq!(*prefs, Preferences::default());
+    }
 }

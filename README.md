@@ -2,6 +2,7 @@
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Platform](https://img.shields.io/badge/platform-Linux%20%7C%20macOS-lightgrey.svg)](#platform-support)
+[![Release](https://img.shields.io/github/v/release/Muminur/MuttonText)](https://github.com/Muminur/MuttonText/releases/latest)
 
 **Free, open-source, cross-platform text expansion for Linux and macOS**
 
@@ -30,15 +31,17 @@ MuttonText monitors your typing and instantly expands predefined keywords into f
 
 ## Quick Start
 
+> **Note:** Releases are automatically created on every push to main using semantic versioning from commit messages.
+
 ### Installation
 
 **Linux (Debian/Ubuntu) - `.deb` package:**
 ```bash
 # Download latest release
-wget https://github.com/Muminur/MuttonText/releases/latest/download/mutton-text_0.1.0_amd64.deb
+wget https://github.com/Muminur/MuttonText/releases/latest/download/MuttonText_0.1.0_amd64.deb
 
 # Install
-sudo dpkg -i mutton-text_0.1.0_amd64.deb
+sudo dpkg -i MuttonText_0.1.0_amd64.deb
 
 # Fix any missing dependencies
 sudo apt install -f
@@ -46,19 +49,19 @@ sudo apt install -f
 
 **Linux (AppImage):**
 ```bash
-# Download latest release
-wget https://github.com/Muminur/MuttonText/releases/latest/download/mutton-text_0.1.0_amd64.AppImage
-chmod +x mutton-text_0.1.0_amd64.AppImage
-./mutton-text_0.1.0_amd64.AppImage
+# AppImage coming in v0.1.1
+wget https://github.com/Muminur/MuttonText/releases/latest/download/MuttonText_0.1.0_amd64.AppImage
+chmod +x MuttonText_0.1.0_amd64.AppImage
+./MuttonText_0.1.0_amd64.AppImage
 ```
 
 **Linux (Fedora/RPM):**
 ```bash
 # Download latest release
-wget https://github.com/Muminur/MuttonText/releases/latest/download/mutton-text-0.1.0-1.x86_64.rpm
+wget https://github.com/Muminur/MuttonText/releases/latest/download/MuttonText-0.1.0-1.x86_64.rpm
 
 # Install
-sudo rpm -i mutton-text-0.1.0-1.x86_64.rpm
+sudo rpm -i MuttonText-0.1.0-1.x86_64.rpm
 ```
 
 **macOS:**

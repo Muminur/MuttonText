@@ -55,5 +55,8 @@ playwright-report/
 # Claude local state
 .claude/
 
+# Git worktrees
+.worktrees/
+
 # Windows reserved names
 nul
