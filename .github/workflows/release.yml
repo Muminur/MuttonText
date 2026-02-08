@@ -76,7 +76,8 @@ jobs:
             libxcb1-dev \
             libxcb-render0-dev \
             libxcb-shape0-dev \
-            libxcb-xfixes0-dev
+            libxcb-xfixes0-dev \
+            libasound2-dev
 
       - name: Cache Rust dependencies
         uses: Swatinem/rust-cache@v2
