@@ -14,6 +14,8 @@ jobs:
     name: Version Bump and Build Packages
     runs-on: ubuntu-22.04
     if: github.ref == 'refs/heads/main'
+    permissions:
+      contents: write
     outputs:
       new_version: ${{ steps.version.outputs.new_version }}
       new_tag: ${{ steps.version.outputs.new_tag }}
