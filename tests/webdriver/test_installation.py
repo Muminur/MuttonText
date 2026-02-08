@@ -7,12 +7,13 @@ import os
 import subprocess
 import time
 import signal
+import shutil
 
 def test_binary_exists():
     """Test that muttontext binary is installed."""
-    result = subprocess.run(['which', 'muttontext'], capture_output=True)
-    assert result.returncode == 0, "muttontext binary not found in PATH"
-    print(f"✓ Binary found at: {result.stdout.decode().strip()}")
+    binary_path = shutil.which('muttontext')
+    assert binary_path is not None, "muttontext binary not found in PATH"
+    print(f"✓ Binary found at: {binary_path}")
 
 def test_app_launches():
     """Test that MuttonText binary launches without immediate crashes."""
