@@ -1,0 +1,242 @@
+name: Build, Test, and Release
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  version-and-build:
+    name: Version Bump and Build Packages
+    runs-on: ubuntu-22.04
+    if: github.ref == 'refs/heads/main'
+    outputs:
+      new_version: ${{ steps.version.outputs.new_version }}
+      new_tag: ${{ steps.version.outputs.new_tag }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Calculate semantic version
+        id: version
+        uses: mathieudutour/github-tag-action@v6.2
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          dry_run: true
+          default_bump: patch
+          release_branches: main
+
+      - name: Update version files
+        if: steps.version.outputs.new_version != ''
+        run: |
+          NEW_VERSION="${{ steps.version.outputs.new_version }}"
+
+          # Update package.json
+          jq ".version = \"$NEW_VERSION\"" package.json > package.json.tmp
+          mv package.json.tmp package.json
+
+          # Update Cargo.toml
+          sed -i "s/^version = .*/version = \"$NEW_VERSION\"/" src-tauri/Cargo.toml
+
+          # Update tauri.conf.json
+          jq ".version = \"$NEW_VERSION\"" src-tauri/tauri.conf.json > src-tauri/tauri.conf.json.tmp
+          mv src-tauri/tauri.conf.json.tmp src-tauri/tauri.conf.json
+
+          echo "Updated version to $NEW_VERSION"
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: stable
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libgtk-3-dev \
+            libayatana-appindicator3-dev \
+            librsvg2-dev \
+            libwebkit2gtk-4.1-dev \
+            libxdo-dev \
+            libx11-dev \
+            libxcb1-dev \
+            libxcb-render0-dev \
+            libxcb-shape0-dev \
+            libxcb-xfixes0-dev
+
+      - name: Cache Rust dependencies
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+
+      - name: Install Node dependencies
+        run: npm ci
+
+      - name: Build Tauri packages
+        run: npm run tauri build -- --bundles deb,rpm
+
+      - name: Upload .deb artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: deb-package
+          path: src-tauri/target/release/bundle/deb/*.deb
+
+      - name: Upload .rpm artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: rpm-package
+          path: src-tauri/target/release/bundle/rpm/*.rpm
+
+      - name: Commit version bump
+        if: steps.version.outputs.new_version != ''
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add package.json src-tauri/Cargo.toml src-tauri/tauri.conf.json
+          git commit -m "chore: bump version to ${{ steps.version.outputs.new_version }} [skip ci]"
+          git push
+
+  test-deb-installation:
+    name: Test .deb Installation
+    runs-on: ubuntu-22.04
+    needs: version-and-build
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Download .deb artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: deb-package
+          path: ./packages
+
+      - name: Install Xvfb and test dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y xvfb x11-utils python3-pip chromium-browser chromium-chromedriver
+
+      - name: Install Python test dependencies
+        run: |
+          pip3 install -r tests/webdriver/requirements.txt
+
+      - name: Install .deb package
+        run: |
+          sudo dpkg -i packages/*.deb || true
+          sudo apt-get install -f -y
+
+      - name: Verify installation
+        run: |
+          which muttontext
+          muttontext --version || echo "Version flag not available"
+
+      - name: Start Xvfb
+        run: |
+          Xvfb :99 -screen 0 1280x720x24 &
+          echo "DISPLAY=:99" >> $GITHUB_ENV
+          sleep 2
+
+      - name: Run GUI tests
+        run: |
+          cd tests/webdriver
+          pytest test_installation.py -v
+        timeout-minutes: 5
+
+  test-rpm-installation:
+    name: Test .rpm Installation
+    runs-on: ubuntu-22.04
+    needs: version-and-build
+    container: fedora:latest
+
+    steps:
+      - name: Install git
+        run: dnf install -y git
+
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Download .rpm artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: rpm-package
+          path: ./packages
+
+      - name: Install Xvfb and test dependencies
+        run: |
+          dnf install -y xorg-x11-server-Xvfb python3-pip chromium chromedriver
+
+      - name: Install Python test dependencies
+        run: |
+          pip3 install -r tests/webdriver/requirements.txt
+
+      - name: Install .rpm package
+        run: |
+          dnf install -y packages/*.rpm
+
+      - name: Verify installation
+        run: |
+          which muttontext
+          muttontext --version || echo "Version flag not available"
+
+      - name: Start Xvfb
+        run: |
+          Xvfb :99 -screen 0 1280x720x24 &
+          export DISPLAY=:99
+          sleep 2
+
+      - name: Run GUI tests
+        run: |
+          cd tests/webdriver
+          DISPLAY=:99 pytest test_installation.py -v
+        timeout-minutes: 5
+
+  create-release:
+    name: Create GitHub Release
+    runs-on: ubuntu-22.04
+    needs: [version-and-build, test-deb-installation, test-rpm-installation]
+    if: github.ref == 'refs/heads/main' && needs.version-and-build.outputs.new_version != ''
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Download .deb artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: deb-package
+          path: ./packages
+
+      - name: Download .rpm artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: rpm-package
+          path: ./packages
+
+      - name: Create Release
+        uses: ncipollo/release-action@v1
+        with:
+          tag: ${{ needs.version-and-build.outputs.new_tag }}
+          name: MuttonText ${{ needs.version-and-build.outputs.new_version }}
+          artifacts: "packages/*"
+          generateReleaseNotes: true
+          draft: false
+          prerelease: false
+          token: ${{ secrets.GITHUB_TOKEN }}
