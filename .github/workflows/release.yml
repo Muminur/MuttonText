@@ -144,7 +144,7 @@ jobs:
 
       - name: Verify installation
         run: |
-          which muttontext
+          command -v muttontext
           muttontext --version || echo "Version flag not available"
 
       - name: Start Xvfb
@@ -192,7 +192,7 @@ jobs:
 
       - name: Verify installation
         run: |
-          which muttontext
+          command -v muttontext
           muttontext --version || echo "Version flag not available"
 
       - name: Start Xvfb
