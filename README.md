@@ -37,6 +37,8 @@ MuttonText monitors your typing and instantly expands predefined keywords into f
 curl -sL https://api.github.com/repos/Muminur/MuttonText/releases/latest | grep "browser_download_url.*\.deb" | cut -d '"' -f 4 | xargs -I {} sh -c 'wget -q --show-progress -O /tmp/MuttonText.deb "{}" && sudo dpkg -i /tmp/MuttonText.deb && sudo apt install -f -y && rm /tmp/MuttonText.deb'
 ```
 
+If `sudo` can't prompt for a password (e.g. inside a non-interactive shell), replace `sudo` with `pkexec` for a graphical auth dialog.
+
 This automatically downloads the latest `.deb` release, installs it, resolves any missing dependencies, and cleans up.
 
 ### Manual Installation
@@ -72,12 +74,12 @@ sudo rpm -i MuttonText-0.0.1-1.x86_64.rpm
 
 **Linux (Debian/Ubuntu):**
 ```bash
-sudo apt remove muttontext
+sudo apt remove mutton-text
 ```
 
 **Linux (Fedora/RPM):**
 ```bash
-sudo rpm -e muttontext
+sudo rpm -e mutton-text
 ```
 
 **macOS:**
