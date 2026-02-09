@@ -86,7 +86,11 @@ impl Default for SubstitutionConfig {
         Self {
             key_delay_ms: 5,
             paste_restore_delay_ms: 50,
-            use_shift_insert: cfg!(target_os = "linux"),
+            // Use Ctrl+V on all platforms (including Linux).
+            // Shift+Insert pastes from X11 PRIMARY selection, but arboard writes
+            // to the CLIPBOARD selection — causing the user's old clipboard content
+            // to be pasted instead of the snippet.
+            use_shift_insert: false,
             timeout_secs: DEFAULT_SUBSTITUTION_TIMEOUT_SECS,
             chunk_delay_ms: 10,
             pre_deletion_delay_ms: 20,
@@ -585,12 +589,11 @@ mod tests {
     // ── Platform-specific defaults ─────────────────────────────
 
     #[test]
-    fn test_config_use_shift_insert_default_linux() {
+    fn test_config_use_shift_insert_default_false() {
         let config = SubstitutionConfig::default();
-        #[cfg(target_os = "linux")]
-        assert!(config.use_shift_insert, "Linux should default to Shift+Insert");
-        #[cfg(not(target_os = "linux"))]
-        assert!(!config.use_shift_insert, "Non-Linux should default to Ctrl+V");
+        // Shift+Insert pastes from X11 PRIMARY selection, not CLIPBOARD.
+        // arboard writes to CLIPBOARD, so we must use Ctrl+V on all platforms.
+        assert!(!config.use_shift_insert, "Should default to Ctrl+V (not Shift+Insert)");
     }
 
     // ── Xdotool deletion tests ─────────────────────────────────
