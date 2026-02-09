@@ -38,10 +38,10 @@ MuttonText monitors your typing and instantly expands predefined keywords into f
 **Linux (Debian/Ubuntu) - `.deb` package:**
 ```bash
 # Download latest release
-wget https://github.com/Muminur/MuttonText/releases/latest/download/MuttonText_0.1.0_amd64.deb
+wget https://github.com/Muminur/MuttonText/releases/latest/download/MuttonText_0.0.1_amd64.deb
 
 # Install
-sudo dpkg -i MuttonText_0.1.0_amd64.deb
+sudo dpkg -i MuttonText_0.0.1_amd64.deb
 
 # Fix any missing dependencies
 sudo apt install -f
@@ -50,18 +50,18 @@ sudo apt install -f
 **Linux (AppImage):**
 ```bash
 # AppImage coming in v0.1.1
-wget https://github.com/Muminur/MuttonText/releases/latest/download/MuttonText_0.1.0_amd64.AppImage
-chmod +x MuttonText_0.1.0_amd64.AppImage
-./MuttonText_0.1.0_amd64.AppImage
+wget https://github.com/Muminur/MuttonText/releases/latest/download/MuttonText_0.0.1_amd64.AppImage
+chmod +x MuttonText_0.0.1_amd64.AppImage
+./MuttonText_0.0.1_amd64.AppImage
 ```
 
 **Linux (Fedora/RPM):**
 ```bash
 # Download latest release
-wget https://github.com/Muminur/MuttonText/releases/latest/download/MuttonText-0.1.0-1.x86_64.rpm
+wget https://github.com/Muminur/MuttonText/releases/latest/download/MuttonText-0.0.1-1.x86_64.rpm
 
 # Install
-sudo rpm -i MuttonText-0.1.0-1.x86_64.rpm
+sudo rpm -i MuttonText-0.0.1-1.x86_64.rpm
 ```
 
 **macOS:**
@@ -88,7 +88,7 @@ sudo rpm -e mutton-text
 **Linux (AppImage):**
 ```bash
 # Simply delete the AppImage file
-rm mutton-text_0.1.0_amd64.AppImage
+rm MuttonText_0.0.1_amd64.AppImage
 ```
 
 **macOS:**
@@ -111,7 +111,7 @@ rm mutton-text_0.1.0_amd64.AppImage
 ### Prerequisites
 
 **All Platforms:**
-- Rust (latest stable) - [Install Rust](https://rustup.rs/)
+- Rust 1.78+ (latest stable recommended) - [Install Rust](https://rustup.rs/)
 - Node.js 18+ - [Install Node.js](https://nodejs.org/)
 - Tauri CLI: `cargo install tauri-cli`
 
@@ -120,7 +120,7 @@ rm mutton-text_0.1.0_amd64.AppImage
 sudo apt install -y build-essential libssl-dev libgtk-3-dev \
   libayatana-appindicator3-dev librsvg2-dev libwebkit2gtk-4.1-dev \
   libxdo-dev libx11-dev libxcb1-dev libxcb-render0-dev \
-  libxcb-shape0-dev libxcb-xfixes0-dev
+  libxcb-shape0-dev libxcb-xfixes0-dev libasound2-dev
 ```
 
 **Linux (Fedora):**
@@ -146,7 +146,7 @@ cd MuttonText
 npm install
 
 # Verify setup
-cargo check
+cd src-tauri && cargo check && cd ..
 npm run typecheck
 
 # Run in development mode
@@ -156,7 +156,7 @@ npm run tauri dev
 npm run tauri build
 
 # Install the built .deb package (Linux)
-sudo dpkg -i src-tauri/target/release/bundle/deb/mutton-text_0.1.0_amd64.deb
+sudo dpkg -i src-tauri/target/release/bundle/deb/MuttonText_0.0.1_amd64.deb
 ```
 
 ## Platform Support
