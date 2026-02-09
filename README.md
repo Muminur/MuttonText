@@ -31,36 +31,31 @@ MuttonText monitors your typing and instantly expands predefined keywords into f
 
 ## Quick Start
 
-> **Note:** Releases are automatically created on every push to main using semantic versioning from commit messages.
+### One-Line Install (Ubuntu/Debian)
 
-### Installation
+```bash
+curl -sL https://api.github.com/repos/Muminur/MuttonText/releases/latest | grep "browser_download_url.*\.deb" | cut -d '"' -f 4 | xargs -I {} sh -c 'wget -q --show-progress -O /tmp/MuttonText.deb "{}" && sudo dpkg -i /tmp/MuttonText.deb && sudo apt install -f -y && rm /tmp/MuttonText.deb'
+```
+
+This automatically downloads the latest `.deb` release, installs it, resolves any missing dependencies, and cleans up.
+
+### Manual Installation
 
 **Linux (Debian/Ubuntu) - `.deb` package:**
 ```bash
-# Download latest release
+# Download latest release (check Releases page for current version)
 wget https://github.com/Muminur/MuttonText/releases/latest/download/MuttonText_0.0.1_amd64.deb
 
 # Install
 sudo dpkg -i MuttonText_0.0.1_amd64.deb
 
 # Fix any missing dependencies
-sudo apt install -f
-```
-
-**Linux (AppImage):**
-```bash
-# AppImage coming in v0.1.1
-wget https://github.com/Muminur/MuttonText/releases/latest/download/MuttonText_0.0.1_amd64.AppImage
-chmod +x MuttonText_0.0.1_amd64.AppImage
-./MuttonText_0.0.1_amd64.AppImage
+sudo apt install -f -y
 ```
 
 **Linux (Fedora/RPM):**
 ```bash
-# Download latest release
 wget https://github.com/Muminur/MuttonText/releases/latest/download/MuttonText-0.0.1-1.x86_64.rpm
-
-# Install
 sudo rpm -i MuttonText-0.0.1-1.x86_64.rpm
 ```
 
@@ -71,24 +66,18 @@ sudo rpm -i MuttonText-0.0.1-1.x86_64.rpm
 # Grant Accessibility and Input Monitoring permissions when prompted
 ```
 
+> **Note:** Versions in the URLs above (e.g. `0.0.1`) may be outdated. The one-liner above always fetches the latest. You can also check the [Releases page](https://github.com/Muminur/MuttonText/releases/latest) for the current version.
+
 ### Uninstallation
 
 **Linux (Debian/Ubuntu):**
 ```bash
-sudo apt remove mutton-text
-# Clean up unused dependencies
-sudo apt autoremove
+sudo apt remove muttontext
 ```
 
 **Linux (Fedora/RPM):**
 ```bash
-sudo rpm -e mutton-text
-```
-
-**Linux (AppImage):**
-```bash
-# Simply delete the AppImage file
-rm MuttonText_0.0.1_amd64.AppImage
+sudo rpm -e muttontext
 ```
 
 **macOS:**
@@ -127,7 +116,7 @@ sudo apt install -y build-essential libssl-dev libgtk-3-dev \
 ```bash
 sudo dnf install -y @development-tools openssl-devel gtk3-devel \
   libappindicator-gtk3-devel librsvg2-devel webkit2gtk4.1-devel \
-  libxdo-devel libX11-devel libxcb-devel
+  libxdo-devel libX11-devel libxcb-devel alsa-lib-devel
 ```
 
 **macOS:**
