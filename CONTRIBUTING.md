@@ -33,7 +33,7 @@ See [README.md](README.md#build-from-source) for detailed platform-specific setu
 Quick setup:
 ```bash
 git clone https://github.com/Muminur/MuttonText.git
-cd muttontext
+cd MuttonText
 npm install
 cargo check
 npm run tauri dev

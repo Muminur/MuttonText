@@ -9,7 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
-## [1.0.0] - 2026-01-31
+## [0.0.1] - 2026-02-08
 
 ### Added
 
@@ -109,16 +109,5 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
-## [0.1.0] - 2026-01-28
-
-Initial development version with Milestones 1-4:
-- Project foundation with Tauri v2 + React + TypeScript
-- Data models for combos, groups, and preferences
-- Combo management backend with JSON storage
-- Main window UI with sidebar, combo list, and editor
-
----
-
-[Unreleased]: https://github.com/Muminur/MuttonText/compare/v1.0.0...HEAD
-[1.0.0]: https://github.com/Muminur/MuttonText/compare/v0.1.0...v1.0.0
-[0.1.0]: https://github.com/Muminur/MuttonText/releases/tag/v0.1.0
+[Unreleased]: https://github.com/Muminur/MuttonText/compare/v0.0.1...HEAD
+[0.0.1]: https://github.com/Muminur/MuttonText/releases/tag/v0.0.1
