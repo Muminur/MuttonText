@@ -1,0 +1,22 @@
+{
+    "type": "script",
+    "description": "Claude Email — expands selected notes into a polished email",
+    "abbreviation": {
+        "abbreviations": [";;email"],
+        "backspace": true,
+        "ignoreCase": false,
+        "immediate": false,
+        "triggerInside": false,
+        "wordChars": "[\\w]"
+    },
+    "hotkey": {
+        "modifiers": [],
+        "hotKey": null
+    },
+    "modes": [3],
+    "usageCount": 0,
+    "sendMode": "kb",
+    "showInTrayMenu": false,
+    "prompt": false,
+    "store": {}
+}

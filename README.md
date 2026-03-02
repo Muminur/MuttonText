@@ -226,6 +226,22 @@ open src-tauri/target/release/bundle/dmg/
 | macOS 12+ | Full Support | Requires Accessibility permissions |
 | Windows | Not Supported | Planned for future release |
 
+## Integrations
+
+Extend MuttonText with community-built integrations:
+
+### Claude AI — Dynamic Text Expansion (Ubuntu/Linux)
+
+Use Claude to expand selected text dynamically. Select rough notes → type `;;email` → Claude writes a polished email in-place.
+
+```bash
+bash integrations/claude-autokey/install.sh
+```
+
+**Triggers:** `;;email`, `;;tldr`, `;;reply`, `;;fix`
+
+-> [Setup guide and tutorial](integrations/claude-autokey/TUTORIAL.md)
+
 ## Documentation
 
 
