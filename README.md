@@ -31,6 +31,17 @@ MuttonText monitors your typing and instantly expands predefined keywords into f
 
 ## Quick Start
 
+### One-Line Install (macOS)
+
+```bash
+curl -sL https://api.github.com/repos/Muminur/MuttonText/releases/latest \
+  | grep "browser_download_url.*\.dmg" \
+  | cut -d '"' -f 4 \
+  | xargs -I {} sh -c 'curl -L -o /tmp/MuttonText.dmg "{}" && open /tmp/MuttonText.dmg'
+```
+
+This downloads the latest `.dmg`, mounts it, and opens it so you can drag MuttonText.app to your Applications folder. Grant Accessibility permissions when prompted.
+
 ### One-Line Install (Ubuntu/Debian)
 
 ```bash
