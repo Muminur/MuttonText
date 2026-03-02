@@ -119,8 +119,8 @@ export const SnippetEditor = forwardRef<HTMLTextAreaElement, SnippetEditorProps>
           onChange={handleChange}
           placeholder={placeholder}
           rows={rows}
-          className={`${baseStyles} relative bg-transparent border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none w-full`}
-          style={{ color: "transparent", caretColor: "currentColor" }}
+          className={`${baseStyles} relative bg-transparent border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none w-full caret-gray-900 dark:caret-gray-100`}
+          style={{ color: "transparent" }}
           spellCheck={false}
         />
       </div>
