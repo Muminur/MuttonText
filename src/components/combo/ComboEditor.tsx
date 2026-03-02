@@ -252,7 +252,7 @@ export function ComboEditor({ open, combo, onSave, onCancel }: ComboEditorProps)
                   value="strict"
                   className="w-4 h-4"
                 />
-                <span>Strict (match after word boundary)</span>
+                <span className="text-sm text-gray-700 dark:text-gray-300">Strict (match after word boundary)</span>
               </label>
               <label className="flex items-center gap-2">
                 <input
@@ -261,7 +261,7 @@ export function ComboEditor({ open, combo, onSave, onCancel }: ComboEditorProps)
                   value="loose"
                   className="w-4 h-4"
                 />
-                <span>Loose (match anywhere)</span>
+                <span className="text-sm text-gray-700 dark:text-gray-300">Loose (match anywhere)</span>
               </label>
             </div>
           </div>
@@ -274,11 +274,11 @@ export function ComboEditor({ open, combo, onSave, onCancel }: ComboEditorProps)
                 {...register("caseSensitive")}
                 className="w-4 h-4"
               />
-              <span className="text-sm">Case Sensitive</span>
+              <span className="text-sm text-gray-700 dark:text-gray-300">Case Sensitive</span>
             </label>
             <label className="flex items-center gap-2">
               <input type="checkbox" {...register("enabled")} className="w-4 h-4" />
-              <span className="text-sm">Enabled</span>
+              <span className="text-sm text-gray-700 dark:text-gray-300">Enabled</span>
             </label>
           </div>
 
