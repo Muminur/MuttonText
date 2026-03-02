@@ -1,5 +1,6 @@
 // Tauri IPC wrapper functions for invoking Rust backend commands
 import { invoke } from "@tauri-apps/api/core";
+import { openUrl as _openUrl } from "@tauri-apps/plugin-opener";
 import type {
   Combo,
   Group,
@@ -254,10 +255,18 @@ export async function deleteBackup(backupId: string): Promise<void> {
 // Update Operations
 // ========================================
 
-export async function checkForUpdates(): Promise<VersionInfo | null> {
-  return invoke("check_for_updates");
+export async function checkForUpdates(latest: VersionInfo): Promise<boolean> {
+  return invoke("check_for_updates", { latest });
 }
 
 export async function skipUpdateVersion(version: string): Promise<void> {
   return invoke("skip_update_version", { version });
+}
+
+// ========================================
+// Shell / URL Operations
+// ========================================
+
+export async function openUrl(url: string): Promise<void> {
+  return _openUrl(url);
 }

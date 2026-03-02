@@ -10,8 +10,9 @@ env:
   CARGO_TERM_COLOR: always
 
 jobs:
-  version-and-build:
-    name: Version Bump and Build Packages
+  # ─── Version bump (Linux only, no build output needed here) ────────────────
+  version:
+    name: Calculate Version
     runs-on: ubuntu-22.04
     if: github.ref == 'refs/heads/main'
     permissions:
@@ -21,8 +22,7 @@ jobs:
       new_tag: ${{ steps.version.outputs.new_tag }}
 
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
         with:
           fetch-depth: 0
           token: ${{ secrets.GITHUB_TOKEN }}
@@ -40,30 +40,43 @@ jobs:
         if: steps.version.outputs.new_version != ''
         run: |
           NEW_VERSION="${{ steps.version.outputs.new_version }}"
-
-          # Update package.json
-          jq ".version = \"$NEW_VERSION\"" package.json > package.json.tmp
-          mv package.json.tmp package.json
-
-          # Update Cargo.toml
+          jq ".version = \"$NEW_VERSION\"" package.json > package.json.tmp && mv package.json.tmp package.json
           sed -i "s/^version = .*/version = \"$NEW_VERSION\"/" src-tauri/Cargo.toml
-
-          # Update tauri.conf.json
-          jq ".version = \"$NEW_VERSION\"" src-tauri/tauri.conf.json > src-tauri/tauri.conf.json.tmp
-          mv src-tauri/tauri.conf.json.tmp src-tauri/tauri.conf.json
-
+          jq ".version = \"$NEW_VERSION\"" src-tauri/tauri.conf.json > src-tauri/tauri.conf.json.tmp && mv src-tauri/tauri.conf.json.tmp src-tauri/tauri.conf.json
           echo "Updated version to $NEW_VERSION"
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - name: Commit version bump
+        if: steps.version.outputs.new_version != ''
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add package.json src-tauri/Cargo.toml src-tauri/Cargo.lock src-tauri/tauri.conf.json
+          if ! git diff-index --quiet HEAD; then
+            git commit -m "chore: bump version to ${{ steps.version.outputs.new_version }} [skip ci]"
+            git push
+          fi
+
+  # ─── Linux build (.deb, .rpm, .AppImage) ───────────────────────────────────
+  build-linux:
+    name: Build Linux Packages
+    runs-on: ubuntu-22.04
+    needs: version
+    if: github.ref == 'refs/heads/main'
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: main
+
+      - uses: actions/setup-node@v4
         with:
           node-version: '20'
           cache: 'npm'
 
-      - name: Setup Rust
-        uses: dtolnay/rust-toolchain@stable
-        with:
-          toolchain: stable
+      - uses: dtolnay/rust-toolchain@stable
 
       - name: Install system dependencies
         run: |
@@ -81,55 +94,110 @@ jobs:
             libxcb-xfixes0-dev \
             libasound2-dev
 
-      - name: Cache Rust dependencies
-        uses: Swatinem/rust-cache@v2
+      - uses: Swatinem/rust-cache@v2
         with:
           workspaces: src-tauri
 
-      - name: Install Node dependencies
-        run: npm ci
+      - run: npm ci
 
-      - name: Build Tauri packages
-        run: npm run tauri build -- --bundles deb,rpm
+      - name: Build Linux bundles
+        run: npm run tauri build -- --bundles deb,rpm,appimage
 
-      - name: Upload .deb artifact
-        uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v4
         with:
-          name: deb-package
+          name: linux-deb
           path: src-tauri/target/release/bundle/deb/*.deb
 
-      - name: Upload .rpm artifact
-        uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v4
         with:
-          name: rpm-package
+          name: linux-rpm
           path: src-tauri/target/release/bundle/rpm/*.rpm
 
-      - name: Commit version bump
-        if: steps.version.outputs.new_version != ''
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add package.json src-tauri/Cargo.toml src-tauri/Cargo.lock src-tauri/tauri.conf.json
-          if ! git diff-index --quiet HEAD; then
-            git commit -m "chore: bump version to ${{ steps.version.outputs.new_version }} [skip ci]"
-            git push
-          else
-            echo "No version changes to commit"
-          fi
+      - uses: actions/upload-artifact@v4
+        with:
+          name: linux-appimage
+          path: src-tauri/target/release/bundle/appimage/*.AppImage
 
+  # ─── macOS build (.dmg) ────────────────────────────────────────────────────
+  build-macos:
+    name: Build macOS Package
+    runs-on: macos-latest
+    needs: version
+    if: github.ref == 'refs/heads/main'
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: main
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+
+      - run: npm ci
+
+      - name: Build macOS DMG
+        run: npm run tauri build -- --bundles dmg
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: macos-dmg
+          path: src-tauri/target/release/bundle/dmg/*.dmg
+
+  # ─── Windows build (.exe installer) ────────────────────────────────────────
+  build-windows:
+    name: Build Windows Installer
+    runs-on: windows-latest
+    needs: version
+    if: github.ref == 'refs/heads/main'
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: main
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+
+      - run: npm ci
+
+      - name: Build Windows installer
+        run: npm run tauri build -- --bundles nsis
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: windows-installer
+          path: src-tauri/target/release/bundle/nsis/*.exe
+
+  # ─── Test Linux .deb installation ──────────────────────────────────────────
   test-deb-installation:
     name: Test .deb Installation
     runs-on: ubuntu-22.04
-    needs: version-and-build
+    needs: build-linux
 
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Download .deb artifact
-        uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v4
         with:
-          name: deb-package
+          name: linux-deb
           path: ./packages
 
       - name: Install Xvfb and test dependencies
@@ -138,110 +206,130 @@ jobs:
           sudo apt-get install -y xvfb x11-utils python3-pip chromium-browser chromium-chromedriver
 
       - name: Install Python test dependencies
-        run: |
-          pip3 install -r tests/webdriver/requirements.txt
+        run: pip3 install -r tests/webdriver/requirements.txt
 
       - name: Install .deb package
-        run: |
-          sudo dpkg -i packages/*.deb || true
-          sudo apt-get install -f -y
+        run: sudo dpkg -i packages/*.deb || true && sudo apt-get install -f -y
 
       - name: Verify installation
-        run: |
-          command -v muttontext
-          muttontext --version || echo "Version flag not available"
+        run: command -v muttontext && muttontext --version || echo "Version flag not available"
 
       - name: Start Xvfb
-        run: |
-          Xvfb :99 -screen 0 1280x720x24 &
-          echo "DISPLAY=:99" >> $GITHUB_ENV
-          sleep 2
+        run: Xvfb :99 -screen 0 1280x720x24 & echo "DISPLAY=:99" >> $GITHUB_ENV && sleep 2
 
       - name: Run GUI tests
-        run: |
-          cd tests/webdriver
-          pytest test_installation.py -v
+        run: cd tests/webdriver && pytest test_installation.py -v
         timeout-minutes: 5
 
+  # ─── Test Linux .rpm installation ──────────────────────────────────────────
   test-rpm-installation:
     name: Test .rpm Installation
     runs-on: ubuntu-22.04
-    needs: version-and-build
+    needs: build-linux
     container: fedora:latest
 
     steps:
       - name: Install git
         run: dnf install -y git
 
-      - name: Checkout code
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Download .rpm artifact
-        uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v4
         with:
-          name: rpm-package
+          name: linux-rpm
           path: ./packages
 
       - name: Install Xvfb and test dependencies
-        run: |
-          dnf install -y xorg-x11-server-Xvfb python3-pip chromium chromedriver
+        run: dnf install -y xorg-x11-server-Xvfb python3-pip chromium chromedriver
 
       - name: Install Python test dependencies
-        run: |
-          pip3 install -r tests/webdriver/requirements.txt
+        run: pip3 install -r tests/webdriver/requirements.txt
 
       - name: Install .rpm package
-        run: |
-          dnf install -y packages/*.rpm
+        run: dnf install -y packages/*.rpm
 
       - name: Verify installation
-        run: |
-          command -v muttontext
-          muttontext --version || echo "Version flag not available"
+        run: command -v muttontext && muttontext --version || echo "Version flag not available"
 
-      - name: Start Xvfb
+      - name: Start Xvfb and run tests
         run: |
           Xvfb :99 -screen 0 1280x720x24 &
-          export DISPLAY=:99
           sleep 2
-
-      - name: Run GUI tests
-        run: |
-          cd tests/webdriver
-          DISPLAY=:99 pytest test_installation.py -v
+          cd tests/webdriver && DISPLAY=:99 pytest test_installation.py -v
         timeout-minutes: 5
 
+  # ─── Create GitHub Release with all artifacts ──────────────────────────────
   create-release:
     name: Create GitHub Release
     runs-on: ubuntu-22.04
-    needs: [version-and-build, test-deb-installation, test-rpm-installation]
-    if: github.ref == 'refs/heads/main' && needs.version-and-build.outputs.new_version != ''
+    needs: [version, build-linux, build-macos, build-windows, test-deb-installation, test-rpm-installation]
+    if: github.ref == 'refs/heads/main' && needs.version.outputs.new_version != ''
     permissions:
       contents: write
 
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      - name: Download .deb artifact
-        uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v4
         with:
-          name: deb-package
+          name: linux-deb
           path: ./packages
 
-      - name: Download .rpm artifact
-        uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v4
         with:
-          name: rpm-package
+          name: linux-rpm
           path: ./packages
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: linux-appimage
+          path: ./packages
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: macos-dmg
+          path: ./packages
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: windows-installer
+          path: ./packages
+
+      - name: Generate latest.json for update checker
+        run: |
+          VERSION="${{ needs.version.outputs.new_version }}"
+          DATE=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+          DEB=$(ls packages/*.deb | head -1 | xargs basename)
+          RPM=$(ls packages/*.rpm | head -1 | xargs basename)
+          APPIMAGE=$(ls packages/*.AppImage | head -1 | xargs basename)
+          DMG=$(ls packages/*.dmg | head -1 | xargs basename)
+          EXE=$(ls packages/*.exe | head -1 | xargs basename)
+          BASE="https://github.com/Muminur/MuttonText/releases/download/v${VERSION}"
+
+          cat > packages/latest.json <<EOF
+          {
+            "version": "${VERSION}",
+            "pub_date": "${DATE}",
+            "notes": "See the full release notes on GitHub.",
+            "platforms": {
+              "linux-x86_64-deb": { "url": "${BASE}/${DEB}" },
+              "linux-x86_64-rpm": { "url": "${BASE}/${RPM}" },
+              "linux-x86_64-appimage": { "url": "${BASE}/${APPIMAGE}" },
+              "darwin-x86_64": { "url": "${BASE}/${DMG}" },
+              "darwin-aarch64": { "url": "${BASE}/${DMG}" },
+              "windows-x86_64": { "url": "${BASE}/${EXE}" }
+            }
+          }
+          EOF
+          echo "Generated latest.json for v${VERSION}"
 
       - name: Create Release
         uses: ncipollo/release-action@v1
         with:
-          tag: ${{ needs.version-and-build.outputs.new_tag }}
-          name: MuttonText ${{ needs.version-and-build.outputs.new_version }}
+          tag: ${{ needs.version.outputs.new_tag }}
+          name: MuttonText ${{ needs.version.outputs.new_version }}
           artifacts: "packages/*"
           generateReleaseNotes: true
           draft: false
