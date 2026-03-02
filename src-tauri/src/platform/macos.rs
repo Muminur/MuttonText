@@ -12,7 +12,7 @@ use std::sync::Arc;
 use std::thread;
 
 use crate::platform::keyboard_hook::{
-    FocusDetector, Key, KeyEvent, KeyEventType, KeyboardHook, Modifiers, PlatformError,
+    FocusDetector, KeyEvent, KeyEventType, KeyboardHook, Modifiers, PlatformError,
     WindowInfo,
 };
 use crate::platform::rdev_common::{is_modifier, rdev_key_to_key};
@@ -178,7 +178,7 @@ impl KeyboardHook for MacOSKeyboardHook {
         self.running.store(true, Ordering::SeqCst);
         self.started_once.store(true, Ordering::SeqCst);
         let running = self.running.clone();
-        let callback = Arc::from(callback);
+        let callback: Arc<dyn Fn(KeyEvent) + Send + Sync> = Arc::from(callback);
 
         thread::Builder::new()
             .name("muttontext-keyboard-hook".into())
