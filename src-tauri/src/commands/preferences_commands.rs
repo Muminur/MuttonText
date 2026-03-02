@@ -2,7 +2,8 @@
 
 use std::sync::Mutex;
 
-use tauri::State;
+use tauri::{AppHandle, State};
+use tauri_plugin_autostart::ManagerExt;
 
 use crate::managers::preferences_manager::{PreferencesError, PreferencesManager};
 use crate::models::preferences::Preferences;
@@ -58,10 +59,19 @@ pub fn get_preferences(state: State<'_, PreferencesState>) -> Result<Preferences
 #[tauri::command]
 pub fn update_preferences(
     preferences: Preferences,
+    app: AppHandle,
     state: State<'_, PreferencesState>,
 ) -> Result<(), CommandError> {
     let mut mgr = lock_prefs(&state)?;
-    mgr.update(preferences).map_err(CommandError::from)
+    mgr.update(preferences.clone()).map_err(CommandError::from)?;
+    // Sync autostart with the saved preference
+    let autolaunch = app.autolaunch();
+    if preferences.start_at_login {
+        let _ = autolaunch.enable();
+    } else {
+        let _ = autolaunch.disable();
+    }
+    Ok(())
 }
 
 #[tauri::command]

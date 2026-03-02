@@ -61,8 +61,25 @@ pub fn run() {
     // Auto-start engine
     engine_manager.start().expect("Failed to start expansion engine");
 
+    // Capture start_at_login before moving preferences_manager into Tauri state
+    let start_at_login = preferences.start_at_login;
+
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
+        .plugin(tauri_plugin_autostart::init(
+            tauri_plugin_autostart::MacosLauncher::LaunchAgent,
+            None,
+        ))
+        .setup(move |app| {
+            use tauri_plugin_autostart::ManagerExt;
+            let autolaunch = app.autolaunch();
+            if start_at_login {
+                let _ = autolaunch.enable();
+            } else {
+                let _ = autolaunch.disable();
+            }
+            Ok(())
+        })
         .manage(AppState {
             combo_manager: Mutex::new(manager),
         })
