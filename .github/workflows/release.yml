@@ -10,7 +10,7 @@ env:
   CARGO_TERM_COLOR: always
 
 jobs:
-  # ─── Version bump (Linux only, no build output needed here) ────────────────
+  # ─── Calculate version (no git push back to main) ───────────────────────────
   version:
     name: Calculate Version
     runs-on: ubuntu-22.04
@@ -35,26 +35,6 @@ jobs:
           dry_run: true
           default_bump: patch
           release_branches: main
-
-      - name: Update version files
-        if: steps.version.outputs.new_version != ''
-        run: |
-          NEW_VERSION="${{ steps.version.outputs.new_version }}"
-          jq ".version = \"$NEW_VERSION\"" package.json > package.json.tmp && mv package.json.tmp package.json
-          sed -i "s/^version = .*/version = \"$NEW_VERSION\"/" src-tauri/Cargo.toml
-          jq ".version = \"$NEW_VERSION\"" src-tauri/tauri.conf.json > src-tauri/tauri.conf.json.tmp && mv src-tauri/tauri.conf.json.tmp src-tauri/tauri.conf.json
-          echo "Updated version to $NEW_VERSION"
-
-      - name: Commit version bump
-        if: steps.version.outputs.new_version != ''
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add package.json src-tauri/Cargo.toml src-tauri/Cargo.lock src-tauri/tauri.conf.json
-          if ! git diff-index --quiet HEAD; then
-            git commit -m "chore: bump version to ${{ steps.version.outputs.new_version }} [skip ci]"
-            git push
-          fi
 
   # ─── Linux build (.deb, .rpm, .AppImage) ───────────────────────────────────
   build-linux:
@@ -100,6 +80,14 @@ jobs:
 
       - run: npm ci
 
+      - name: Set version in files
+        if: needs.version.outputs.new_version != ''
+        run: |
+          V="${{ needs.version.outputs.new_version }}"
+          jq ".version = \"$V\"" package.json > package.json.tmp && mv package.json.tmp package.json
+          sed -i "s/^version = .*/version = \"$V\"/" src-tauri/Cargo.toml
+          jq ".version = \"$V\"" src-tauri/tauri.conf.json > src-tauri/tauri.conf.json.tmp && mv src-tauri/tauri.conf.json.tmp src-tauri/tauri.conf.json
+
       - name: Build Linux bundles
         run: npm run tauri build -- --bundles deb,rpm,appimage
 
@@ -144,6 +132,14 @@ jobs:
 
       - run: npm ci
 
+      - name: Set version in files
+        if: needs.version.outputs.new_version != ''
+        run: |
+          V="${{ needs.version.outputs.new_version }}"
+          jq ".version = \"$V\"" package.json > package.json.tmp && mv package.json.tmp package.json
+          sed -i '' "s/^version = .*/version = \"$V\"/" src-tauri/Cargo.toml
+          jq ".version = \"$V\"" src-tauri/tauri.conf.json > src-tauri/tauri.conf.json.tmp && mv src-tauri/tauri.conf.json.tmp src-tauri/tauri.conf.json
+
       - name: Build macOS DMG
         run: npm run tauri build -- --bundles dmg
 
@@ -177,6 +173,15 @@ jobs:
           workspaces: src-tauri
 
       - run: npm ci
+
+      - name: Set version in files
+        if: needs.version.outputs.new_version != ''
+        shell: bash
+        run: |
+          V="${{ needs.version.outputs.new_version }}"
+          jq ".version = \"$V\"" package.json > package.json.tmp && mv package.json.tmp package.json
+          sed -i "s/^version = .*/version = \"$V\"/" src-tauri/Cargo.toml
+          jq ".version = \"$V\"" src-tauri/tauri.conf.json > src-tauri/tauri.conf.json.tmp && mv src-tauri/tauri.conf.json.tmp src-tauri/tauri.conf.json
 
       - name: Build Windows installer
         run: npm run tauri build -- --bundles nsis
