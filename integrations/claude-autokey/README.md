@@ -1,10 +1,8 @@
-# Claude AutoKey Integration for MuttonText (Ubuntu/Linux)
+# Claude AutoKey Integration for MuttonText
 
-Dynamic Claude-powered text expansion alongside MuttonText static snippets.
+Dynamic Claude-powered text expansion alongside MuttonText on Ubuntu/Linux.
 
-## What it does
-
-Select any text, type a `;;trigger`, and Claude expands it:
+Select any text, type a `;;trigger`, and Claude expands it in-place — no copy-paste, no context switching.
 
 | Trigger    | What it does                              |
 |------------|-------------------------------------------|
@@ -13,52 +11,52 @@ Select any text, type a `;;trigger`, and Claude expands it:
 | `;;reply`  | Drafts a professional reply               |
 | `;;fix`    | Fixes grammar and spelling in-place       |
 
+## Quick Start
+
+```bash
+git clone https://github.com/Muminur/MuttonText.git
+cd MuttonText
+bash integrations/claude-autokey/install.sh
+```
+
+Then add your Anthropic API key:
+```bash
+nano ~/.config/muttontext/.env
+# Replace 'your_key_here' with your key from https://console.anthropic.com
+```
+
+Start AutoKey: `autokey-gtk &`
+
+Select some text → type `;;email` → done.
+
+## Full Tutorial
+
+See **[TUTORIAL.md](TUTORIAL.md)** for:
+- Step-by-step setup with examples
+- Demos of all four triggers
+- How to add your own custom triggers
+- Troubleshooting guide
+
 ## Requirements
 
 - Ubuntu/Linux with X11
-- [AutoKey](https://github.com/autokey/autokey): `sudo apt install autokey-gtk`
-- `xclip`: `sudo apt install xclip`
+- AutoKey: `sudo apt install autokey-gtk`
+- xclip: `sudo apt install xclip`
 - Python: `pip install anthropic python-dotenv`
-- Anthropic API key
+- [Anthropic API key](https://console.anthropic.com)
 
-## Setup
+## Files
 
-1. **Add your API key:**
-   ```bash
-   echo "ANTHROPIC_API_KEY=your_key_here" > ~/.config/muttontext/.env
-   chmod 600 ~/.config/muttontext/.env
-   ```
+| File | Purpose |
+|------|---------|
+| `install.sh` | One-command automated setup |
+| `_claude_lib.py` | Shared library (API, xclip, notifications) |
+| `expand_email.py` | `;;email` trigger script |
+| `expand_tldr.py` | `;;tldr` trigger script |
+| `expand_reply.py` | `;;reply` trigger script |
+| `expand_fix.py` | `;;fix` trigger script |
+| `autokey-configs/` | AutoKey abbreviation metadata (installed automatically) |
 
-2. **Copy scripts to AutoKey:**
-   ```bash
-   mkdir -p ~/.config/autokey/data/claude-snippets
-   cp integrations/claude-autokey/*.py ~/.config/autokey/data/claude-snippets/
-   ```
+## Security
 
-3. **Register in AutoKey:**
-   - Open AutoKey (`autokey-gtk`)
-   - New Folder → `Claude Snippets`
-   - For each trigger: New Script → set Abbreviation → paste script content → Save
-
-   | Script | Abbreviation |
-   |--------|-------------|
-   | expand_email.py | `;;email` |
-   | expand_tldr.py  | `;;tldr`  |
-   | expand_reply.py | `;;reply` |
-   | expand_fix.py   | `;;fix`   |
-
-4. **Test:** Select text → type `;;email` → watch Claude expand it.
-
-## How it works
-
-```
-User selects text → types ;;trigger → AutoKey fires Python script
-    → xclip grabs X11 primary selection
-    → notify-send "Claude thinking..."
-    → Anthropic API call (claude-haiku-4-5-20251001)
-    → AutoKey types Claude response in place
-```
-
-## API Key security
-
-The API key lives at `~/.config/muttontext/.env` with `600` permissions — readable only by you.
+API key stored at `~/.config/muttontext/.env` with `600` permissions (your account only). Selected text is sent to the Anthropic API — see [Anthropic's privacy policy](https://www.anthropic.com/legal/privacy).
