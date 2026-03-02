@@ -84,6 +84,56 @@ curl -sL https://api.github.com/repos/Muminur/MuttonText/releases/latest \
 
 > **Note:** Versions in the URLs above (e.g. `0.0.1`) may be outdated. The one-liner above always fetches the latest. You can also check the [Releases page](https://github.com/Muminur/MuttonText/releases/latest) for the current version.
 
+### Updating MuttonText
+
+MuttonText checks for updates automatically on startup (configurable in **Preferences → Updates**). When an update is detected you can download it directly from within the app.
+
+You can also update manually:
+
+**In-app update check (all platforms):**
+1. Open MuttonText → Preferences (tray icon or menu)
+2. Go to the **Updates** tab
+3. Click **Check for Updates**
+4. If a new version is available, click **Download Update**
+
+**macOS — one-liner:**
+```bash
+curl -sL https://api.github.com/repos/Muminur/MuttonText/releases/latest \
+  | grep "browser_download_url.*\.dmg" \
+  | cut -d '"' -f 4 \
+  | xargs -I {} sh -c 'curl -L -o /tmp/MuttonText.dmg "{}" && open /tmp/MuttonText.dmg'
+# Drag the new MuttonText.app to Applications, replacing the old one
+```
+
+**Linux (Debian/Ubuntu) — one-liner:**
+```bash
+curl -sL https://api.github.com/repos/Muminur/MuttonText/releases/latest \
+  | grep "browser_download_url.*\.deb" \
+  | cut -d '"' -f 4 \
+  | xargs -I {} sh -c 'wget -q --show-progress -O /tmp/MuttonText.deb "{}" && sudo dpkg -i /tmp/MuttonText.deb && sudo apt install -f -y && rm /tmp/MuttonText.deb'
+```
+
+**Linux (Fedora/RPM) — one-liner:**
+```bash
+curl -sL https://api.github.com/repos/Muminur/MuttonText/releases/latest \
+  | grep "browser_download_url.*\.rpm" \
+  | cut -d '"' -f 4 \
+  | xargs -I {} sh -c 'wget -q --show-progress -O /tmp/MuttonText.rpm "{}" && sudo rpm -U /tmp/MuttonText.rpm && rm /tmp/MuttonText.rpm'
+```
+
+**Linux (AppImage):**
+```bash
+# Download new AppImage
+curl -sL https://api.github.com/repos/Muminur/MuttonText/releases/latest \
+  | grep "browser_download_url.*\.AppImage" \
+  | cut -d '"' -f 4 \
+  | xargs -I {} sh -c 'wget -q --show-progress -O ~/Applications/MuttonText.AppImage "{}" && chmod +x ~/Applications/MuttonText.AppImage'
+```
+
+**Windows:**
+1. Download the latest `.exe` installer from the [Releases page](https://github.com/Muminur/MuttonText/releases/latest)
+2. Run the installer — it will automatically replace the existing installation
+
 ### Uninstallation
 
 **Linux (Debian/Ubuntu):**
