@@ -41,7 +41,6 @@ vitest.config.ts
 src-tauri/benches/
 
 # CI workflows - managed separately
-.github/workflows/
 
 # Serena config
 .serena/
