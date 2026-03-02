@@ -63,9 +63,12 @@ sudo rpm -i MuttonText-0.0.1-1.x86_64.rpm
 
 **macOS:**
 ```bash
-# Download DMG from releases page
-# Drag MuttonText.app to Applications
-# Grant Accessibility and Input Monitoring permissions when prompted
+# One-liner: download and open the latest DMG
+curl -sL https://api.github.com/repos/Muminur/MuttonText/releases/latest \
+  | grep "browser_download_url.*\.dmg" \
+  | cut -d '"' -f 4 \
+  | xargs -I {} sh -c 'curl -L -o /tmp/MuttonText.dmg "{}" && open /tmp/MuttonText.dmg'
+# Then drag MuttonText.app to Applications and grant Accessibility permissions when prompted
 ```
 
 > **Note:** Versions in the URLs above (e.g. `0.0.1`) may be outdated. The one-liner above always fetches the latest. You can also check the [Releases page](https://github.com/Muminur/MuttonText/releases/latest) for the current version.
@@ -85,6 +88,10 @@ sudo rpm -e mutton-text
 **macOS:**
 ```bash
 # Drag MuttonText.app from Applications to Trash
+# Optionally remove app data:
+rm -rf ~/Library/Application\ Support/com.muttontext.app
+rm -rf ~/Library/Preferences/com.muttontext.app.plist
+rm -rf ~/Library/Caches/com.muttontext.app
 ```
 
 ### First Run
@@ -133,12 +140,8 @@ xcode-select --install
 git clone https://github.com/Muminur/MuttonText.git
 cd MuttonText
 
-# Install dependencies
-npm install
-
-# Verify setup
-cd src-tauri && cargo check && cd ..
-npm run typecheck
+# One-command setup (installs Rust automatically if missing, checks all deps)
+bash scripts/setup-dev.sh
 
 # Run in development mode
 npm run tauri dev
@@ -146,8 +149,11 @@ npm run tauri dev
 # Build for production
 npm run tauri build
 
-# Install the built .deb package (Linux)
+# Install the built package
+# Linux:
 sudo dpkg -i src-tauri/target/release/bundle/deb/MuttonText_0.0.1_amd64.deb
+# macOS: open the generated .dmg from src-tauri/target/release/bundle/dmg/
+open src-tauri/target/release/bundle/dmg/
 ```
 
 ## Platform Support
