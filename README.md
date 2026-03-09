@@ -25,6 +25,22 @@ MuttonText monitors your typing and instantly expands predefined keywords into f
 - **Automatic Backups** - Never lose your snippet library
 - **System Tray Integration** - Quick pause/resume and status at a glance
 
+## Why MuttonText?
+
+| Feature | MuttonText | TextExpander | Espanso | Beeftext | AutoKey |
+| --- | --- | --- | --- | --- | --- |
+| Open Source | ✅ | ❌ | ✅ | ✅ | ✅ |
+| Free | ✅ | ❌ | ✅ | ✅ | ✅ |
+| Privacy-Focused (Local Only) | ✅ | ❌ | ✅ | ✅ | ✅ |
+| Cross-Platform | ✅ | ✅ | ✅ | ❌ | ❌ |
+| Dynamic Variables | ✅ | ✅ | ✅ | ✅ | ✅ |
+| Beeftext Compatible | ✅ | ❌ | ❌ | ✅ | ❌ |
+| Sub-50ms Latency | ✅ | ✅ | ✅ | ✅ | ❌ |
+| System Tray | ✅ | ✅ | ✅ | ✅ | ✅ |
+| App Exclusions | ✅ | ✅ | ❌ | ❌ | ❌ |
+
+*MuttonText is the only free, open-source text expander with Beeftext compatibility, app exclusion rules, and zero telemetry.*
+
 ## Screenshot
 
 > Screenshot placeholder - coming soon
