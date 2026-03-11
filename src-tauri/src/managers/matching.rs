@@ -130,12 +130,13 @@ impl MatcherEngine {
 
         for combo in combos.iter().filter(|c| c.enabled) {
             let kw_len = combo.keyword.len();
+            let kw_char_count = combo.keyword.chars().count();
             let entry = ComboEntry {
                 id: combo.id,
                 keyword: combo.keyword.clone(),
                 snippet: combo.snippet.clone(),
                 case_sensitive: combo.case_sensitive,
-                keyword_byte_len: kw_len,
+                keyword_byte_len: kw_char_count,
             };
             if kw_len > self.max_keyword_len {
                 self.max_keyword_len = kw_len;

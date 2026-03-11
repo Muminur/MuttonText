@@ -16,7 +16,11 @@ pub enum PasteMethod {
 
 impl Default for PasteMethod {
     fn default() -> Self {
-        Self::Clipboard
+        if cfg!(target_os = "macos") {
+            Self::SimulateKeystrokes
+        } else {
+            Self::Clipboard
+        }
     }
 }
 
@@ -88,8 +92,13 @@ mod tests {
     // ── PasteMethod tests ───────────────────────────────────────────
 
     #[test]
-    fn test_paste_method_default_is_clipboard() {
-        assert_eq!(PasteMethod::default(), PasteMethod::Clipboard);
+    fn test_paste_method_default() {
+        let default = PasteMethod::default();
+        if cfg!(target_os = "macos") {
+            assert_eq!(default, PasteMethod::SimulateKeystrokes);
+        } else {
+            assert_eq!(default, PasteMethod::Clipboard);
+        }
     }
 
     #[test]
@@ -179,9 +188,13 @@ mod tests {
     }
 
     #[test]
-    fn test_preferences_default_paste_clipboard() {
+    fn test_preferences_default_paste_method() {
         let prefs = Preferences::default();
-        assert_eq!(prefs.paste_method, PasteMethod::Clipboard);
+        if cfg!(target_os = "macos") {
+            assert_eq!(prefs.paste_method, PasteMethod::SimulateKeystrokes);
+        } else {
+            assert_eq!(prefs.paste_method, PasteMethod::Clipboard);
+        }
     }
 
     #[test]

@@ -31,6 +31,10 @@ dirs = "5"
 fs2 = "0.4"
 rodio = { version = "0.17", optional = true }
 
+[target.'cfg(target_os = "macos")'.dependencies]
+core-foundation = "0.10"
+core-foundation-sys = "0.8"
+
 [features]
 default = ["sound"]
 sound = ["rodio"]

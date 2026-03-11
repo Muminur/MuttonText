@@ -2601,6 +2601,8 @@ version = "0.0.1"
 dependencies = [
  "arboard",
  "chrono",
+ "core-foundation 0.10.1",
+ "core-foundation-sys 0.8.7",
  "criterion",
  "dirs 5.0.1",
  "fs2",

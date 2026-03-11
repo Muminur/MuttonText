@@ -132,6 +132,10 @@ impl InputManager {
 
     /// Attach a keyboard hook. The hook is not started until `start` is called.
     pub fn set_keyboard_hook(&mut self, hook: Box<dyn KeyboardHook>) {
+        // Stop the old hook if it's running
+        if let Some(ref mut old_hook) = self.keyboard_hook {
+            let _ = old_hook.stop(); // Ignore error if already stopped
+        }
         self.keyboard_hook = Some(hook);
     }
 

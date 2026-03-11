@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { MainLayout } from "./components/common/MainLayout";
 import { ContentArea } from "./components/common/ContentArea";
+import { AccessibilityBanner } from "./components/common/AccessibilityBanner";
 import { ComboList } from "./components/combo/ComboList";
 import { PreferencesDialog } from "./components/preferences/PreferencesDialog";
 import { ImportDialog, ExportDialog, BackupManager } from "./components/data";
@@ -40,6 +41,7 @@ function App() {
       onOpenExport={() => setExportOpen(true)}
       onOpenBackups={() => setBackupsOpen(true)}
     >
+      <AccessibilityBanner />
       <ContentArea>
         {selectedGroupId ? (
           <ComboList />
