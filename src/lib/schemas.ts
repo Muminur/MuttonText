@@ -9,7 +9,7 @@ export const matchingModeSchema = z.enum(["strict", "loose"]);
 /**
  * Paste method enum
  */
-export const pasteMethodSchema = z.enum(["clipboard", "simulateKeystrokes"]);
+export const pasteMethodSchema = z.enum(["clipboard", "simulateKeystrokes", "xdotoolType"]);
 
 /**
  * Theme enum

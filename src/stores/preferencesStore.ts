@@ -27,7 +27,7 @@ const DEFAULT_PREFERENCES: Preferences = {
   defaultCaseSensitive: false,
   comboTriggerShortcut: "",
   pickerShortcut: "Ctrl+Space",
-  pasteMethod: "clipboard",
+  pasteMethod: "simulateKeystrokes",
   theme: "system",
   backupEnabled: true,
   backupIntervalHours: 24,

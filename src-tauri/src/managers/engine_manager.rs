@@ -25,7 +25,7 @@ use crate::platform::keyboard_hook::{FocusDetector, KeyboardHook};
 use crate::platform::linux::{LinuxKeyboardHook, LinuxFocusDetector};
 
 #[cfg(target_os = "macos")]
-use crate::platform::macos::{MacOSKeyboardHook, MacOSFocusDetector};
+use crate::platform::macos::{IOHIDKeyboardHook, MacOSFocusDetector};
 
 // Windows support is not yet implemented, use mock for now
 #[cfg(target_os = "windows")]
@@ -181,7 +181,7 @@ impl EngineManager {
 
         #[cfg(target_os = "macos")]
         {
-            Box::new(MacOSKeyboardHook::new())
+            Box::new(IOHIDKeyboardHook::new())
         }
 
         #[cfg(target_os = "windows")]
@@ -194,6 +194,13 @@ impl EngineManager {
         {
             compile_error!("Unsupported platform for keyboard hooks");
         }
+    }
+
+    /// Replaces the keyboard hook with a fresh instance.
+    /// This is needed on macOS where rdev::listen cannot be restarted.
+    fn replace_keyboard_hook(inner: &mut EngineInner) {
+        let new_hook: Box<dyn KeyboardHook> = Self::create_keyboard_hook();
+        inner.input_manager.set_keyboard_hook(new_hook);
     }
 
     /// Creates the platform-specific focus detector.
@@ -380,11 +387,19 @@ impl EngineManager {
         Ok(inner.status)
     }
 
-    /// Restarts the engine (stop + start).
+    /// Restarts the engine (stop + start with fresh hook).
     pub fn restart(&self) -> Result<(), EngineError> {
-        if self.status()? != EngineStatus::Stopped {
-            self.stop()?;
+        let mut inner = self.inner.lock().map_err(|_| EngineError::LockError)?;
+
+        if inner.status != EngineStatus::Stopped {
+            inner.input_manager.stop()?;
+            inner.status = EngineStatus::Stopped;
         }
+
+        // Replace hook with a fresh instance (needed on macOS where rdev can't restart)
+        Self::replace_keyboard_hook(&mut inner);
+
+        drop(inner); // Release lock before calling start() which also locks
         self.start()?;
         Ok(())
     }

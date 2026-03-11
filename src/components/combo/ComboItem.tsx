@@ -1,4 +1,5 @@
 // ComboItem - Grid row for a single combo with context menu
+import { useState } from "react";
 import {
   ContextMenu,
   ContextMenuTrigger,
@@ -7,6 +8,7 @@ import {
   ContextMenuSeparator,
 } from "@radix-ui/react-context-menu";
 import * as Tooltip from "@radix-ui/react-tooltip";
+import * as Dialog from "@radix-ui/react-dialog";
 import { Edit, Copy, FolderOpen, Trash2, Power, PowerOff } from "lucide-react";
 import { useComboStore } from "../../stores/comboStore";
 import { useGroupStore } from "../../stores/groupStore";
@@ -26,6 +28,7 @@ export function ComboItem({ combo, onEdit }: ComboItemProps) {
     toggleCombo,
   } = useComboStore();
   const { groups } = useGroupStore();
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   const group = groups.find((g) => g.id === combo.groupId);
   const isSelected = selectedIds.has(combo.id);
@@ -72,14 +75,17 @@ export function ComboItem({ combo, onEdit }: ComboItemProps) {
     await duplicateCombo(combo.id);
   };
 
-  const handleDelete = async () => {
-    if (confirm(`Delete combo "${combo.name}"?`)) {
-      await deleteCombo(combo.id);
-    }
+  const handleDelete = () => {
+    setShowDeleteConfirm(true);
   };
 
-  const handleToggleEnabled = async () => {
-    await toggleCombo(combo.id);
+  const confirmDelete = () => {
+    deleteCombo(combo.id).catch(console.error);
+    setShowDeleteConfirm(false);
+  };
+
+  const handleToggleEnabled = () => {
+    toggleCombo(combo.id).catch(console.error);
   };
 
   return (
@@ -197,6 +203,34 @@ export function ComboItem({ combo, onEdit }: ComboItemProps) {
           Delete
         </ContextMenuItem>
       </ContextMenuContent>
+
+      <Dialog.Root open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
+        <Dialog.Portal>
+          <Dialog.Overlay className="fixed inset-0 bg-black/50 z-50" />
+          <Dialog.Content className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6 z-50 max-w-md w-full">
+            <Dialog.Title className="text-lg font-semibold dark:text-gray-100">
+              Delete Combo
+            </Dialog.Title>
+            <Dialog.Description className="mt-2 text-sm text-gray-600 dark:text-gray-400">
+              Are you sure you want to delete &quot;{combo.name}&quot;? This action cannot be undone.
+            </Dialog.Description>
+            <div className="flex justify-end gap-3 mt-4">
+              <button
+                className="px-4 py-2 text-sm rounded-lg border border-gray-300 dark:border-gray-600 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700"
+                onClick={() => setShowDeleteConfirm(false)}
+              >
+                Cancel
+              </button>
+              <button
+                className="px-4 py-2 text-sm rounded-lg bg-red-600 text-white hover:bg-red-700"
+                onClick={confirmDelete}
+              >
+                Delete
+              </button>
+            </div>
+          </Dialog.Content>
+        </Dialog.Portal>
+      </Dialog.Root>
     </ContextMenu>
   );
 }

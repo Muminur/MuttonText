@@ -48,6 +48,24 @@ pub fn run() {
     let backup_manager = BackupManager::new(backups_dir, 10);
     let update_manager = UpdateManager::new(env!("CARGO_PKG_VERSION").to_string());
 
+    // Check accessibility permissions on macOS (required for keyboard monitoring)
+    #[cfg(target_os = "macos")]
+    {
+        use platform::check_accessibility_permission_with_prompt;
+        use platform::PermissionStatus;
+
+        let status = check_accessibility_permission_with_prompt(true);
+        if status != PermissionStatus::Granted {
+            tracing::warn!(
+                "Accessibility permission may not be granted. MuttonText needs Accessibility access \
+                 to monitor keystrokes. Please grant access in System Settings → Privacy & \
+                 Security → Accessibility. Starting engine anyway (rdev will report if events fail)."
+            );
+        } else {
+            tracing::info!("Accessibility permission confirmed granted");
+        }
+    }
+
     // Initialize expansion engine
     let engine_manager = EngineManager::new();
 
@@ -58,7 +76,9 @@ pub fn run() {
     let preferences = preferences_manager.get();
     engine_manager.apply_preferences(&preferences).expect("Failed to apply preferences to engine");
 
-    // Auto-start engine
+    // Always start the engine — rdev::listen will silently receive no events
+    // if accessibility is not granted, but the AXIsProcessTrusted check can be
+    // unreliable on macOS Ventura with ad-hoc signed apps.
     engine_manager.start().expect("Failed to start expansion engine");
 
     // Capture start_at_login before moving preferences_manager into Tauri state
@@ -78,6 +98,7 @@ pub fn run() {
             } else {
                 let _ = autolaunch.disable();
             }
+
             Ok(())
         })
         .manage(AppState {
@@ -157,6 +178,8 @@ pub fn run() {
             commands::engine_commands::pause_engine,
             commands::engine_commands::resume_engine,
             commands::engine_commands::get_engine_status,
+            commands::engine_commands::check_accessibility,
+            commands::engine_commands::request_accessibility,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

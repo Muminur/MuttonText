@@ -147,6 +147,32 @@ pub fn resume_engine(state: State<EngineState>) -> Result<EngineStatusResponse, 
     Ok(status.into())
 }
 
+/// Check if accessibility permission is granted (macOS only).
+/// Returns true on non-macOS platforms.
+#[tauri::command]
+pub fn check_accessibility() -> bool {
+    #[cfg(target_os = "macos")]
+    {
+        use crate::platform::{check_accessibility_permission, PermissionStatus};
+        check_accessibility_permission() == PermissionStatus::Granted
+    }
+    #[cfg(not(target_os = "macos"))]
+    {
+        true
+    }
+}
+
+/// Request accessibility permission (macOS only).
+/// Shows the system prompt dialog and opens System Settings.
+#[tauri::command]
+pub fn request_accessibility() {
+    #[cfg(target_os = "macos")]
+    {
+        use crate::platform::request_accessibility_permission;
+        let _ = request_accessibility_permission();
+    }
+}
+
 /// Gets the current engine status.
 #[tauri::command]
 pub fn get_engine_status(state: State<EngineState>) -> Result<EngineStatusResponse, CommandError> {

@@ -63,7 +63,7 @@ export function createDefaultPreferences(): Preferences {
     defaultCaseSensitive: false,
     comboTriggerShortcut: "",
     pickerShortcut: "",
-    pasteMethod: "clipboard" as PasteMethod,
+    pasteMethod: "simulateKeystrokes" as PasteMethod,
     theme: "system" as Theme,
     backupEnabled: true,
     backupIntervalHours: 24,

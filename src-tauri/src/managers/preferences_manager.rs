@@ -465,7 +465,7 @@ mod tests {
         assert_eq!(prefs.default_case_sensitive, false);
         assert_eq!(prefs.combo_trigger_shortcut, "");
         assert_eq!(prefs.picker_shortcut, "Ctrl+Shift+Space");
-        assert_eq!(prefs.paste_method, PasteMethod::Clipboard);
+        assert_eq!(prefs.paste_method, PasteMethod::default());
         assert_eq!(prefs.theme, Theme::System);
         assert_eq!(prefs.backup_enabled, true);
         assert_eq!(prefs.backup_interval_hours, 24);

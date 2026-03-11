@@ -114,6 +114,73 @@ fn press_key(key: Key, delay: Duration) -> Result<(), SubstitutionError> {
     Ok(())
 }
 
+/// macOS-specific fast keyword deletion using CoreGraphics.
+///
+/// Sends all backspace key events through CGEventPost with minimal delay,
+/// bypassing rdev::simulate which adds overhead on macOS Ventura.
+#[cfg(target_os = "macos")]
+fn delete_keyword_macos(count: usize, _config: &SubstitutionConfig) -> Result<(), SubstitutionError> {
+    if count > MAX_KEYWORD_LENGTH {
+        return Err(SubstitutionError::KeywordTooLong(count, MAX_KEYWORD_LENGTH));
+    }
+    if count == 0 {
+        return Ok(());
+    }
+    tracing::debug!("Deleting {} characters via macOS CGEvent backspace (fast)", count);
+
+    use std::ffi::c_void;
+
+    type CGEventRef = *mut c_void;
+    type CGEventSourceRef = *mut c_void;
+
+    #[link(name = "CoreGraphics", kind = "framework")]
+    extern "C" {
+        fn CGEventSourceCreate(state_id: i32) -> CGEventSourceRef;
+        fn CGEventCreateKeyboardEvent(
+            source: CGEventSourceRef,
+            virtual_key: u16,
+            key_down: bool,
+        ) -> CGEventRef;
+        fn CGEventPost(tap: u32, event: CGEventRef);
+    }
+
+    #[link(name = "CoreFoundation", kind = "framework")]
+    extern "C" {
+        fn CFRelease(cf: *const c_void);
+    }
+
+    const HID_SYSTEM_STATE: i32 = 1;
+    const HID_EVENT_TAP: u32 = 0;
+    const BACKSPACE_KEYCODE: u16 = 51; // macOS virtual keycode for backspace
+
+    unsafe {
+        let source = CGEventSourceCreate(HID_SYSTEM_STATE);
+
+        for _ in 0..count {
+            let key_down = CGEventCreateKeyboardEvent(source, BACKSPACE_KEYCODE, true);
+            if !key_down.is_null() {
+                CGEventPost(HID_EVENT_TAP, key_down);
+                CFRelease(key_down as *const c_void);
+            }
+
+            let key_up = CGEventCreateKeyboardEvent(source, BACKSPACE_KEYCODE, false);
+            if !key_up.is_null() {
+                CGEventPost(HID_EVENT_TAP, key_up);
+                CFRelease(key_up as *const c_void);
+            }
+        }
+
+        // Brief pause to let the OS process all backspaces before inserting
+        std::thread::sleep(std::time::Duration::from_millis(10));
+
+        if !source.is_null() {
+            CFRelease(source as *const c_void);
+        }
+    }
+
+    Ok(())
+}
+
 /// Deletes `count` characters by sending backspace key events.
 pub fn delete_keyword(count: usize, config: &SubstitutionConfig) -> Result<(), SubstitutionError> {
     if count > MAX_KEYWORD_LENGTH {
@@ -177,23 +244,198 @@ pub fn insert_via_clipboard<P: ClipboardProvider>(
     Ok(())
 }
 
-/// Inserts text by simulating individual keystrokes via rdev.
+/// macOS-specific clipboard paste using CoreGraphics CGEventPost.
 ///
-/// This is slower but does not disturb the clipboard.
+/// Uses CGEventPost to simulate Cmd+V instead of rdev::simulate,
+/// which doesn't work reliably on macOS Ventura.
+#[cfg(target_os = "macos")]
+pub fn insert_via_clipboard_macos<P: ClipboardProvider>(
+    text: &str,
+    clipboard_mgr: &mut ClipboardManager<P>,
+    config: &SubstitutionConfig,
+) -> Result<(), SubstitutionError> {
+    tracing::debug!("Inserting via macOS clipboard paste (CGEvent): {} chars", text.len());
+
+    use std::ffi::c_void;
+
+    type CGEventRef = *mut c_void;
+    type CGEventSourceRef = *mut c_void;
+
+    #[link(name = "CoreGraphics", kind = "framework")]
+    extern "C" {
+        fn CGEventSourceCreate(state_id: i32) -> CGEventSourceRef;
+        fn CGEventCreateKeyboardEvent(
+            source: CGEventSourceRef,
+            virtual_key: u16,
+            key_down: bool,
+        ) -> CGEventRef;
+        fn CGEventSetFlags(event: CGEventRef, flags: u64);
+        fn CGEventPost(tap: u32, event: CGEventRef);
+    }
+
+    #[link(name = "CoreFoundation", kind = "framework")]
+    extern "C" {
+        fn CFRelease(cf: *const c_void);
+    }
+
+    const HID_SYSTEM_STATE: i32 = 1;
+    const HID_EVENT_TAP: u32 = 0;
+    const CMD_V_KEYCODE: u16 = 9; // macOS virtual keycode for 'v'
+    const CMD_FLAG: u64 = 0x00100000; // kCGEventFlagMaskCommand
+
+    // Preserve current clipboard
+    clipboard_mgr.preserve()?;
+
+    // Write snippet to clipboard
+    clipboard_mgr.write(text)?;
+
+    // Small delay to ensure clipboard is ready
+    std::thread::sleep(std::time::Duration::from_millis(config.key_delay_ms));
+
+    unsafe {
+        let source = CGEventSourceCreate(HID_SYSTEM_STATE);
+
+        // Cmd+V key down
+        let key_down = CGEventCreateKeyboardEvent(source, CMD_V_KEYCODE, true);
+        if !key_down.is_null() {
+            CGEventSetFlags(key_down, CMD_FLAG);
+            CGEventPost(HID_EVENT_TAP, key_down);
+            CFRelease(key_down as *const c_void);
+        }
+
+        std::thread::sleep(std::time::Duration::from_millis(5));
+
+        // Cmd+V key up
+        let key_up = CGEventCreateKeyboardEvent(source, CMD_V_KEYCODE, false);
+        if !key_up.is_null() {
+            CGEventSetFlags(key_up, 0);
+            CGEventPost(HID_EVENT_TAP, key_up);
+            CFRelease(key_up as *const c_void);
+        }
+
+        if !source.is_null() {
+            CFRelease(source as *const c_void);
+        }
+    }
+
+    // Wait for paste to complete before restoring clipboard
+    std::thread::sleep(std::time::Duration::from_millis(config.paste_restore_delay_ms));
+
+    // Restore clipboard
+    clipboard_mgr.restore()?;
+
+    Ok(())
+}
+
+/// macOS-specific keystroke insertion using CoreGraphics.
+///
+/// Uses `CGEventKeyboardSetUnicodeString` to correctly inject Unicode
+/// characters, since `Key::Unknown(code)` incorrectly passes Unicode
+/// codepoints as virtual keycodes on macOS (CGKeyCodes map physical keys,
+/// not characters).
+#[cfg(target_os = "macos")]
+fn insert_via_keystrokes_macos(text: &str, config: &SubstitutionConfig) -> Result<(), SubstitutionError> {
+    use std::ffi::c_void;
+
+    type CGEventRef = *mut c_void;
+    type CGEventSourceRef = *mut c_void;
+
+    #[link(name = "CoreGraphics", kind = "framework")]
+    extern "C" {
+        fn CGEventSourceCreate(state_id: i32) -> CGEventSourceRef;
+        fn CGEventCreateKeyboardEvent(
+            source: CGEventSourceRef,
+            virtual_key: u16,
+            key_down: bool,
+        ) -> CGEventRef;
+        fn CGEventKeyboardSetUnicodeString(
+            event: CGEventRef,
+            length: u64,
+            string: *const u16,
+        );
+        fn CGEventPost(tap: u32, event: CGEventRef);
+    }
+
+    #[link(name = "CoreFoundation", kind = "framework")]
+    extern "C" {
+        fn CFRelease(cf: *const c_void);
+    }
+
+    // kCGEventSourceStateHIDSystemState = 1
+    const HID_SYSTEM_STATE: i32 = 1;
+    // kCGHIDEventTap = 0
+    const HID_EVENT_TAP: u32 = 0;
+
+    tracing::debug!("Inserting via macOS CGEvent keystrokes: {} chars", text.len());
+    let delay = Duration::from_millis(config.key_delay_ms);
+
+    unsafe {
+        let source = CGEventSourceCreate(HID_SYSTEM_STATE);
+
+        for ch in text.chars() {
+            let mut utf16 = [0u16; 2];
+            let encoded = ch.encode_utf16(&mut utf16);
+            let len = encoded.len();
+
+            // Key-down with dummy keycode 0; unicode string overrides the character
+            let key_down = CGEventCreateKeyboardEvent(source, 0, true);
+            if key_down.is_null() {
+                if !source.is_null() {
+                    CFRelease(source as *const c_void);
+                }
+                return Err(SubstitutionError::SimulationFailed(
+                    format!("CGEventCreateKeyboardEvent failed for '{}'", ch),
+                ));
+            }
+            CGEventKeyboardSetUnicodeString(key_down, len as u64, utf16.as_ptr());
+            CGEventPost(HID_EVENT_TAP, key_down);
+            CFRelease(key_down as *const c_void);
+
+            thread::sleep(delay);
+
+            // Key-up
+            let key_up = CGEventCreateKeyboardEvent(source, 0, false);
+            if !key_up.is_null() {
+                CGEventKeyboardSetUnicodeString(key_up, len as u64, utf16.as_ptr());
+                CGEventPost(HID_EVENT_TAP, key_up);
+                CFRelease(key_up as *const c_void);
+            }
+
+            thread::sleep(delay);
+        }
+
+        if !source.is_null() {
+            CFRelease(source as *const c_void);
+        }
+    }
+
+    Ok(())
+}
+
+/// Inserts text by simulating individual keystrokes.
+///
+/// On macOS, uses CoreGraphics `CGEventKeyboardSetUnicodeString` for correct
+/// Unicode character injection. On other platforms, uses rdev's simulate API.
 pub fn insert_via_keystrokes(text: &str, config: &SubstitutionConfig) -> Result<(), SubstitutionError> {
     if text.len() > MAX_SNIPPET_SIZE {
         return Err(SubstitutionError::SnippetTooLarge(text.len(), MAX_SNIPPET_SIZE));
     }
     tracing::debug!("Inserting via keystrokes: {} chars", text.len());
-    let delay = Duration::from_millis(config.key_delay_ms);
 
-    for ch in text.chars() {
-        // rdev supports KeyPress with unicode characters
-        send_key_event(EventType::KeyPress(Key::Unknown(ch as u32)), delay)?;
-        send_key_event(EventType::KeyRelease(Key::Unknown(ch as u32)), delay)?;
+    #[cfg(target_os = "macos")]
+    {
+        return insert_via_keystrokes_macos(text, config);
     }
 
-    Ok(())
+    #[cfg(not(target_os = "macos"))]
+    {
+        let delay = Duration::from_millis(config.key_delay_ms);
+        for ch in text.chars() {
+            send_key_event(EventType::KeyPress(Key::Unknown(ch as u32)), delay)?;
+            send_key_event(EventType::KeyRelease(Key::Unknown(ch as u32)), delay)?;
+        }
+        Ok(())
+    }
 }
 
 /// Deletes `count` characters by sending backspace via xdotool (Linux).
@@ -304,13 +546,21 @@ impl SubstitutionEngine {
         snippet: &str,
         clipboard_mgr: &mut ClipboardManager<P>,
     ) -> Result<(), SubstitutionError> {
-        if cfg!(target_os = "linux") {
-            delete_keyword_xdotool(keyword_len, &self.config)?;
-        } else {
-            delete_keyword(keyword_len, &self.config)?;
+        #[cfg(target_os = "macos")]
+        {
+            delete_keyword_macos(keyword_len, &self.config)?;
+            return insert_via_clipboard_macos(snippet, clipboard_mgr, &self.config);
         }
-        insert_via_clipboard(snippet, clipboard_mgr, &self.config)?;
-        Ok(())
+        #[cfg(not(target_os = "macos"))]
+        {
+            if cfg!(target_os = "linux") {
+                delete_keyword_xdotool(keyword_len, &self.config)?;
+            } else {
+                delete_keyword(keyword_len, &self.config)?;
+            }
+            insert_via_clipboard(snippet, clipboard_mgr, &self.config)?;
+            Ok(())
+        }
     }
 
     /// Performs a full substitution: delete keyword, then insert snippet.
@@ -323,14 +573,22 @@ impl SubstitutionEngine {
         keyword_len: usize,
         snippet: &str,
     ) -> Result<(), SubstitutionError> {
-        if cfg!(target_os = "linux") {
-            delete_keyword_xdotool(keyword_len, &self.config)?;
-            insert_via_xdotool(snippet, &self.config)?;
-        } else {
-            delete_keyword(keyword_len, &self.config)?;
-            insert_via_keystrokes(snippet, &self.config)?;
+        #[cfg(target_os = "macos")]
+        {
+            delete_keyword_macos(keyword_len, &self.config)?;
+            return insert_via_keystrokes(snippet, &self.config);
         }
-        Ok(())
+        #[cfg(not(target_os = "macos"))]
+        {
+            if cfg!(target_os = "linux") {
+                delete_keyword_xdotool(keyword_len, &self.config)?;
+                insert_via_xdotool(snippet, &self.config)?;
+            } else {
+                delete_keyword(keyword_len, &self.config)?;
+                insert_via_keystrokes(snippet, &self.config)?;
+            }
+            Ok(())
+        }
     }
 
     /// Performs a full substitution: delete keyword, then insert snippet.

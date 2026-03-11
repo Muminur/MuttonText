@@ -34,8 +34,9 @@ pub use linux::{
 
 #[cfg(target_os = "macos")]
 pub use macos::{
-    check_accessibility_permission, request_accessibility_permission, MacOSFocusDetector,
-    MacOSKeyboardHook, PermissionStatus,
+    check_accessibility_permission, check_accessibility_permission_with_prompt,
+    request_accessibility_permission, IOHIDKeyboardHook, MacOSFocusDetector, MacOSKeyboardHook,
+    PermissionStatus,
 };
 
 #[cfg(test)]
