@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
 import {
   FileIcon,
@@ -14,13 +14,17 @@ interface MenuBarProps {
   onOpenImport?: () => void;
   onOpenExport?: () => void;
   onOpenBackups?: () => void;
+  onNewCombo?: () => void;
+  onNewGroup?: () => void;
 }
 
 /**
  * Menu bar component with File, Edit, Combos, Groups, and Help menus.
  * Uses Radix UI DropdownMenu for accessible menu implementation.
  */
-export const MenuBar: React.FC<MenuBarProps> = ({ onOpenPreferences, onOpenImport, onOpenExport, onOpenBackups }) => {
+export const MenuBar: React.FC<MenuBarProps> = ({ onOpenPreferences, onOpenImport, onOpenExport, onOpenBackups, onNewCombo, onNewGroup }) => {
+  const [aboutOpen, setAboutOpen] = useState(false);
+
   return (
     <div className="flex h-8 items-center gap-1 border-b border-gray-200 dark:border-gray-700 bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-100 px-2" role="menubar" aria-label="Main menu">
       {/* File Menu */}
@@ -44,13 +48,13 @@ export const MenuBar: React.FC<MenuBarProps> = ({ onOpenPreferences, onOpenImpor
           >
             <DropdownMenu.Item
               className="cursor-pointer px-3 py-2 text-sm outline-none hover:bg-gray-100 dark:hover:bg-gray-700 dark:text-gray-100"
-              onSelect={() => console.log("New Combo")}
+              onSelect={() => onNewCombo?.()}
             >
               New Combo
             </DropdownMenu.Item>
             <DropdownMenu.Item
               className="cursor-pointer px-3 py-2 text-sm outline-none hover:bg-gray-100 dark:hover:bg-gray-700 dark:text-gray-100"
-              onSelect={() => console.log("New Group")}
+              onSelect={() => onNewGroup?.()}
             >
               New Group
             </DropdownMenu.Item>
@@ -202,7 +206,7 @@ export const MenuBar: React.FC<MenuBarProps> = ({ onOpenPreferences, onOpenImpor
           >
             <DropdownMenu.Item
               className="cursor-pointer px-3 py-2 text-sm outline-none hover:bg-gray-100 dark:hover:bg-gray-700 dark:text-gray-100"
-              onSelect={() => console.log("New Group")}
+              onSelect={() => onNewGroup?.()}
             >
               New Group
             </DropdownMenu.Item>
@@ -231,7 +235,7 @@ export const MenuBar: React.FC<MenuBarProps> = ({ onOpenPreferences, onOpenImpor
           >
             <DropdownMenu.Item
               className="cursor-pointer px-3 py-2 text-sm outline-none hover:bg-gray-100 dark:hover:bg-gray-700 dark:text-gray-100"
-              onSelect={() => console.log("About")}
+              onSelect={() => setAboutOpen(true)}
             >
               About
             </DropdownMenu.Item>
@@ -244,6 +248,27 @@ export const MenuBar: React.FC<MenuBarProps> = ({ onOpenPreferences, onOpenImpor
           </DropdownMenu.Content>
         </DropdownMenu.Portal>
       </DropdownMenu.Root>
+      {aboutOpen && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
+          onClick={() => setAboutOpen(false)}
+        >
+          <div
+            className="rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-800 p-6 shadow-xl w-80 text-center"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-2">MuttonText</h2>
+            <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">A fast, cross-platform text expansion tool</p>
+            <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">Version: 0.1.0</p>
+            <button
+              className="rounded bg-blue-500 px-4 py-2 text-sm text-white hover:bg-blue-600"
+              onClick={() => setAboutOpen(false)}
+            >
+              Close
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

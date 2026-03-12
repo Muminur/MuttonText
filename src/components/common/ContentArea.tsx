@@ -3,6 +3,7 @@ import { SearchIcon, PlusIcon, GridIcon, ListIcon } from "lucide-react";
 import { ComboEditor } from "../combo/ComboEditor";
 import { useComboStore } from "@/stores/comboStore";
 import type { CreateComboInput } from "@/lib/types";
+import { EVENTS } from "@/lib/events";
 
 interface ContentAreaProps {
   children: React.ReactNode;
@@ -16,6 +17,12 @@ export const ContentArea: React.FC<ContentAreaProps> = ({ children }) => {
   const [viewMode, setViewMode] = React.useState<"list" | "grid">("list");
   const [comboEditorOpen, setComboEditorOpen] = React.useState(false);
   const { createCombo } = useComboStore();
+
+  React.useEffect(() => {
+    const handler = () => setComboEditorOpen(true);
+    window.addEventListener(EVENTS.NEW_COMBO, handler);
+    return () => window.removeEventListener(EVENTS.NEW_COMBO, handler);
+  }, []);
 
   const handleCreateCombo = async (data: CreateComboInput) => {
     try {

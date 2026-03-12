@@ -1,5 +1,6 @@
 import React from "react";
 import type { Preferences } from "@/lib/types";
+import { useTheme } from "@/hooks/useTheme";
 
 interface AppearanceTabProps {
   preferences: Preferences;
@@ -10,6 +11,8 @@ export const AppearanceTab: React.FC<AppearanceTabProps> = ({ preferences, onCha
   const update = (partial: Partial<Preferences>) => {
     onChange({ ...preferences, ...partial });
   };
+
+  useTheme(preferences.theme);
 
   return (
     <div className="space-y-6">

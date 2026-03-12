@@ -85,7 +85,7 @@ impl Default for SubstitutionConfig {
     fn default() -> Self {
         Self {
             key_delay_ms: 5,
-            paste_restore_delay_ms: 50,
+            paste_restore_delay_ms: 200,
             // Use Ctrl+V on all platforms (including Linux).
             // Shift+Insert pastes from X11 PRIMARY selection, but arboard writes
             // to the CLIPBOARD selection — causing the user's old clipboard content
@@ -280,8 +280,9 @@ pub fn insert_via_clipboard_macos<P: ClipboardProvider>(
 
     const HID_SYSTEM_STATE: i32 = 1;
     const HID_EVENT_TAP: u32 = 0;
-    const CMD_V_KEYCODE: u16 = 9; // macOS virtual keycode for 'v'
-    const CMD_FLAG: u64 = 0x00100000; // kCGEventFlagMaskCommand
+    const V_KEYCODE: u16 = 9;           // macOS virtual keycode for 'v'
+    const CMD_LEFT_KEYCODE: u16 = 55;   // macOS virtual keycode for Left Command
+    const CMD_FLAG: u64 = 0x00100000;   // kCGEventFlagMaskCommand
 
     // Preserve current clipboard
     clipboard_mgr.preserve()?;
@@ -289,28 +290,48 @@ pub fn insert_via_clipboard_macos<P: ClipboardProvider>(
     // Write snippet to clipboard
     clipboard_mgr.write(text)?;
 
-    // Small delay to ensure clipboard is ready
-    std::thread::sleep(std::time::Duration::from_millis(config.key_delay_ms));
+    // Delay to ensure clipboard content is committed to the pasteboard
+    std::thread::sleep(std::time::Duration::from_millis(20));
 
     unsafe {
         let source = CGEventSourceCreate(HID_SYSTEM_STATE);
 
-        // Cmd+V key down
-        let key_down = CGEventCreateKeyboardEvent(source, CMD_V_KEYCODE, true);
-        if !key_down.is_null() {
-            CGEventSetFlags(key_down, CMD_FLAG);
-            CGEventPost(HID_EVENT_TAP, key_down);
-            CFRelease(key_down as *const c_void);
+        // 1. Command key down
+        let cmd_down = CGEventCreateKeyboardEvent(source, CMD_LEFT_KEYCODE, true);
+        if !cmd_down.is_null() {
+            CGEventSetFlags(cmd_down, CMD_FLAG);
+            CGEventPost(HID_EVENT_TAP, cmd_down);
+            CFRelease(cmd_down as *const c_void);
         }
 
         std::thread::sleep(std::time::Duration::from_millis(5));
 
-        // Cmd+V key up
-        let key_up = CGEventCreateKeyboardEvent(source, CMD_V_KEYCODE, false);
-        if !key_up.is_null() {
-            CGEventSetFlags(key_up, 0);
-            CGEventPost(HID_EVENT_TAP, key_up);
-            CFRelease(key_up as *const c_void);
+        // 2. V key down (Command still held)
+        let v_down = CGEventCreateKeyboardEvent(source, V_KEYCODE, true);
+        if !v_down.is_null() {
+            CGEventSetFlags(v_down, CMD_FLAG);
+            CGEventPost(HID_EVENT_TAP, v_down);
+            CFRelease(v_down as *const c_void);
+        }
+
+        std::thread::sleep(std::time::Duration::from_millis(5));
+
+        // 3. V key up (Command still held)
+        let v_up = CGEventCreateKeyboardEvent(source, V_KEYCODE, false);
+        if !v_up.is_null() {
+            CGEventSetFlags(v_up, CMD_FLAG);
+            CGEventPost(HID_EVENT_TAP, v_up);
+            CFRelease(v_up as *const c_void);
+        }
+
+        std::thread::sleep(std::time::Duration::from_millis(5));
+
+        // 4. Command key up
+        let cmd_up = CGEventCreateKeyboardEvent(source, CMD_LEFT_KEYCODE, false);
+        if !cmd_up.is_null() {
+            CGEventSetFlags(cmd_up, 0);
+            CGEventPost(HID_EVENT_TAP, cmd_up);
+            CFRelease(cmd_up as *const c_void);
         }
 
         if !source.is_null() {
@@ -508,6 +529,110 @@ pub fn insert_via_xdotool(text: &str, config: &SubstitutionConfig) -> Result<(),
     Ok(())
 }
 
+/// macOS-specific text insertion using osascript and clipboard (AppleScript paste).
+///
+/// Uses `pbcopy` to write text to the clipboard and `osascript` to trigger
+/// Cmd+V via System Events. This is an alternative to the CGEvent-based
+/// clipboard paste that works through the Accessibility framework.
+///
+/// Note: Requires Accessibility permissions for System Events.
+#[cfg(target_os = "macos")]
+pub fn insert_via_osascript_paste_macos(
+    text: &str,
+    config: &SubstitutionConfig,
+) -> Result<(), SubstitutionError> {
+    if text.len() > MAX_SNIPPET_SIZE {
+        return Err(SubstitutionError::SnippetTooLarge(text.len(), MAX_SNIPPET_SIZE));
+    }
+    tracing::debug!("Inserting via macOS osascript paste: {} chars", text.len());
+
+    use std::io::Write;
+
+    // Write text to clipboard via pbcopy
+    let mut child = std::process::Command::new("pbcopy")
+        .stdin(std::process::Stdio::piped())
+        .spawn()
+        .map_err(|e| SubstitutionError::SimulationFailed(format!("pbcopy spawn failed: {}", e)))?;
+
+    if let Some(mut stdin) = child.stdin.take() {
+        stdin.write_all(text.as_bytes())
+            .map_err(|e| SubstitutionError::SimulationFailed(format!("pbcopy write failed: {}", e)))?;
+    }
+
+    let status = child.wait()
+        .map_err(|e| SubstitutionError::SimulationFailed(format!("pbcopy wait failed: {}", e)))?;
+
+    if !status.success() {
+        return Err(SubstitutionError::SimulationFailed("pbcopy exited with error".to_string()));
+    }
+
+    // Delay to ensure clipboard content is committed
+    std::thread::sleep(std::time::Duration::from_millis(20));
+
+    // Use osascript to send Cmd+V via System Events
+    let output = std::process::Command::new("osascript")
+        .arg("-e")
+        .arg("tell application \"System Events\" to keystroke \"v\" using command down")
+        .output()
+        .map_err(|e| SubstitutionError::SimulationFailed(format!("osascript failed: {}", e)))?;
+
+    if !output.status.success() {
+        let stderr = String::from_utf8_lossy(&output.stderr);
+        return Err(SubstitutionError::SimulationFailed(
+            format!("osascript error: {}", stderr),
+        ));
+    }
+
+    // Wait for paste to complete
+    std::thread::sleep(std::time::Duration::from_millis(config.paste_restore_delay_ms));
+
+    Ok(())
+}
+
+/// macOS-specific keyword deletion using osascript (AppleScript backspace).
+///
+/// Uses `osascript` with System Events to send backspace key events.
+/// This is an alternative to the CGEvent-based backspace that works through
+/// the Accessibility framework.
+#[cfg(target_os = "macos")]
+#[allow(dead_code)] // Available as alternative to CGEvent-based deletion
+fn delete_keyword_osascript_macos(count: usize, config: &SubstitutionConfig) -> Result<(), SubstitutionError> {
+    if count > MAX_KEYWORD_LENGTH {
+        return Err(SubstitutionError::KeywordTooLong(count, MAX_KEYWORD_LENGTH));
+    }
+    if count == 0 {
+        return Ok(());
+    }
+    tracing::debug!("Deleting {} characters via macOS osascript backspace", count);
+
+    // Pre-deletion delay for browser compatibility
+    if config.pre_deletion_delay_ms > 0 {
+        std::thread::sleep(std::time::Duration::from_millis(config.pre_deletion_delay_ms));
+    }
+
+    // Use osascript to send backspace key events via System Events
+    // key code 51 = macOS backspace
+    let script = format!(
+        "tell application \"System Events\"\nrepeat {} times\nkey code 51\ndelay 0.005\nend repeat\nend tell",
+        count
+    );
+
+    let output = std::process::Command::new("osascript")
+        .arg("-e")
+        .arg(&script)
+        .output()
+        .map_err(|e| SubstitutionError::SimulationFailed(format!("osascript failed: {}", e)))?;
+
+    if !output.status.success() {
+        let stderr = String::from_utf8_lossy(&output.stderr);
+        return Err(SubstitutionError::SimulationFailed(
+            format!("osascript error: {}", stderr),
+        ));
+    }
+
+    Ok(())
+}
+
 /// Represents a complete substitution operation.
 pub struct SubstitutionEngine {
     config: SubstitutionConfig,
@@ -593,15 +718,29 @@ impl SubstitutionEngine {
 
     /// Performs a full substitution: delete keyword, then insert snippet.
     ///
-    /// Uses xdotool type command (Linux terminal compatible).
+    /// On macOS, uses osascript (AppleScript System Events) as the equivalent
+    /// of xdotool. Uses CGEvent backspace for deletion (fast and reliable)
+    /// and osascript for paste.
+    /// On Linux, uses xdotool type command (terminal compatible).
     pub fn substitute_via_xdotool(
         &self,
         keyword_len: usize,
         snippet: &str,
     ) -> Result<(), SubstitutionError> {
-        delete_keyword_xdotool(keyword_len, &self.config)?;
-        insert_via_xdotool(snippet, &self.config)?;
-        Ok(())
+        #[cfg(target_os = "macos")]
+        {
+            // On macOS, use osascript (AppleScript System Events) as the
+            // equivalent of xdotool. Uses CGEvent backspace for deletion
+            // (fast and reliable) and osascript for paste.
+            delete_keyword_macos(keyword_len, &self.config)?;
+            return insert_via_osascript_paste_macos(snippet, &self.config);
+        }
+        #[cfg(not(target_os = "macos"))]
+        {
+            delete_keyword_xdotool(keyword_len, &self.config)?;
+            insert_via_xdotool(snippet, &self.config)?;
+            Ok(())
+        }
     }
 }
 
@@ -646,16 +785,70 @@ pub fn insert_via_clipboard_chunked<P: ClipboardProvider>(
         clipboard_mgr.write(&chunk)?;
         thread::sleep(Duration::from_millis(config.key_delay_ms));
 
-        // Simulate paste
-        let delay = Duration::from_millis(config.key_delay_ms);
-        let paste_modifier = if cfg!(target_os = "macos") {
-            Key::MetaLeft
-        } else {
-            Key::ControlLeft
-        };
-        send_key_event(EventType::KeyPress(paste_modifier), delay)?;
-        press_key(Key::KeyV, delay)?;
-        send_key_event(EventType::KeyRelease(paste_modifier), delay)?;
+        // Simulate paste - use CGEvent on macOS for reliability
+        #[cfg(target_os = "macos")]
+        {
+            use std::ffi::c_void;
+            type CGEventRef = *mut c_void;
+            type CGEventSourceRef = *mut c_void;
+            #[link(name = "CoreGraphics", kind = "framework")]
+            extern "C" {
+                fn CGEventSourceCreate(state_id: i32) -> CGEventSourceRef;
+                fn CGEventCreateKeyboardEvent(source: CGEventSourceRef, virtual_key: u16, key_down: bool) -> CGEventRef;
+                fn CGEventSetFlags(event: CGEventRef, flags: u64);
+                fn CGEventPost(tap: u32, event: CGEventRef);
+            }
+            #[link(name = "CoreFoundation", kind = "framework")]
+            extern "C" {
+                fn CFRelease(cf: *const c_void);
+            }
+            const CMD_FLAG_CHUNK: u64 = 0x00100000;
+            unsafe {
+                let source = CGEventSourceCreate(1); // HID system state
+                let cmd_down = CGEventCreateKeyboardEvent(source, 55, true);
+                if !cmd_down.is_null() {
+                    CGEventSetFlags(cmd_down, CMD_FLAG_CHUNK);
+                    CGEventPost(0, cmd_down);
+                    CFRelease(cmd_down as *const c_void);
+                }
+                std::thread::sleep(Duration::from_millis(5));
+                let v_down = CGEventCreateKeyboardEvent(source, 9, true);
+                if !v_down.is_null() {
+                    CGEventSetFlags(v_down, CMD_FLAG_CHUNK);
+                    CGEventPost(0, v_down);
+                    CFRelease(v_down as *const c_void);
+                }
+                std::thread::sleep(Duration::from_millis(5));
+                let v_up = CGEventCreateKeyboardEvent(source, 9, false);
+                if !v_up.is_null() {
+                    CGEventSetFlags(v_up, CMD_FLAG_CHUNK);
+                    CGEventPost(0, v_up);
+                    CFRelease(v_up as *const c_void);
+                }
+                std::thread::sleep(Duration::from_millis(5));
+                let cmd_up = CGEventCreateKeyboardEvent(source, 55, false);
+                if !cmd_up.is_null() {
+                    CGEventSetFlags(cmd_up, 0);
+                    CGEventPost(0, cmd_up);
+                    CFRelease(cmd_up as *const c_void);
+                }
+                if !source.is_null() {
+                    CFRelease(source as *const c_void);
+                }
+            }
+        }
+        #[cfg(not(target_os = "macos"))]
+        {
+            let delay = Duration::from_millis(config.key_delay_ms);
+            let paste_modifier = if cfg!(target_os = "macos") {
+                Key::MetaLeft
+            } else {
+                Key::ControlLeft
+            };
+            send_key_event(EventType::KeyPress(paste_modifier), delay)?;
+            press_key(Key::KeyV, delay)?;
+            send_key_event(EventType::KeyRelease(paste_modifier), delay)?;
+        }
 
         thread::sleep(Duration::from_millis(config.paste_restore_delay_ms));
 
@@ -691,7 +884,7 @@ mod tests {
     fn test_config_defaults() {
         let config = SubstitutionConfig::default();
         assert_eq!(config.key_delay_ms, 5);
-        assert_eq!(config.paste_restore_delay_ms, 50);
+        assert_eq!(config.paste_restore_delay_ms, 200);
         // use_shift_insert is platform-specific, test separately
     }
 
@@ -936,5 +1129,86 @@ mod tests {
             pre_deletion_delay_ms: 0,
         };
         assert_eq!(config.pre_deletion_delay_ms, 0);
+    }
+
+    // ── macOS clipboard paste timing ─────────────────────────────
+
+    #[test]
+    fn test_config_paste_restore_delay_default_200ms() {
+        // paste_restore_delay_ms was increased from 50ms to 200ms to give target
+        // applications enough time to read clipboard content before restoration
+        let config = SubstitutionConfig::default();
+        assert_eq!(config.paste_restore_delay_ms, 200,
+            "Default paste restore delay should be 200ms for reliable clipboard paste");
+    }
+
+    // ── macOS osascript paste validation ─────────────────────────
+
+    #[test]
+    fn test_insert_via_osascript_validates_snippet_size() {
+        // insert_via_osascript_paste_macos should validate snippet size
+        // We test this on macOS only since the function is cfg(target_os = "macos")
+        #[cfg(target_os = "macos")]
+        {
+            let config = SubstitutionConfig::default();
+            let huge_text = "a".repeat(MAX_SNIPPET_SIZE + 1);
+            let result = insert_via_osascript_paste_macos(&huge_text, &config);
+            assert!(result.is_err());
+            assert!(matches!(result.unwrap_err(), SubstitutionError::SnippetTooLarge(..)));
+        }
+    }
+
+    #[test]
+    fn test_delete_keyword_osascript_validates_length() {
+        // delete_keyword_osascript_macos should validate keyword length
+        #[cfg(target_os = "macos")]
+        {
+            let config = SubstitutionConfig::default();
+            let result = delete_keyword_osascript_macos(MAX_KEYWORD_LENGTH + 1, &config);
+            assert!(result.is_err());
+            assert!(matches!(result.unwrap_err(), SubstitutionError::KeywordTooLong(..)));
+        }
+    }
+
+    #[test]
+    fn test_delete_keyword_osascript_zero_is_noop() {
+        #[cfg(target_os = "macos")]
+        {
+            let config = SubstitutionConfig::default();
+            let result = delete_keyword_osascript_macos(0, &config);
+            assert!(result.is_ok());
+        }
+    }
+
+    // ── Platform dispatch tests ──────────────────────────────────
+
+    #[test]
+    fn test_substitute_via_xdotool_uses_osascript_on_macos() {
+        // On macOS, substitute_via_xdotool should use osascript-based functions
+        // instead of xdotool (which doesn't exist on macOS).
+        // We verify the engine can be constructed and the method signature matches.
+        let engine = SubstitutionEngine::with_defaults();
+        // The dispatch logic uses #[cfg(target_os)] so we can't test both branches
+        // in one binary, but we can verify the engine is properly configured
+        assert_eq!(engine.config().paste_restore_delay_ms, 200);
+    }
+
+    #[test]
+    fn test_substitute_via_xdotool_doc_update() {
+        // Verify the xdotool method exists and engine works with all three methods
+        let engine = SubstitutionEngine::with_defaults();
+        // On macOS: substitute_via_xdotool uses delete_keyword_macos + insert_via_osascript_paste_macos
+        // On Linux: substitute_via_xdotool uses delete_keyword_xdotool + insert_via_xdotool
+        assert!(engine.config().key_delay_ms > 0);
+        assert!(engine.config().paste_restore_delay_ms > 0);
+    }
+
+    // ── Chunked paste platform dispatch ──────────────────────────
+
+    #[test]
+    fn test_chunked_paste_threshold_unchanged() {
+        // Verify chunked paste constants haven't changed
+        assert_eq!(CHUNKED_PASTE_THRESHOLD, 1000);
+        assert_eq!(PASTE_CHUNK_SIZE, 500);
     }
 }

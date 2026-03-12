@@ -62,10 +62,16 @@ export const ImportDialog: React.FC<ImportDialogProps> = ({
     }
   }, []);
 
+  const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10 MB
+
   const handleFileSelect = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
       const file = e.target.files?.[0];
       if (!file) return;
+      if (file.size > MAX_FILE_SIZE) {
+        setError("File exceeds 10 MB size limit");
+        return;
+      }
       const reader = new FileReader();
       reader.onload = () => {
         handleFileRead(reader.result as string, file.name);
@@ -81,6 +87,10 @@ export const ImportDialog: React.FC<ImportDialogProps> = ({
       setIsDragging(false);
       const file = e.dataTransfer.files[0];
       if (!file) return;
+      if (file.size > MAX_FILE_SIZE) {
+        setError("File exceeds 10 MB size limit");
+        return;
+      }
       const reader = new FileReader();
       reader.onload = () => {
         handleFileRead(reader.result as string, file.name);

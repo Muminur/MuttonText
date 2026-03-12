@@ -48,9 +48,11 @@ export const AdvancedTab: React.FC<AdvancedTabProps> = ({ preferences, onChange 
           >
             <option value="simulateKeystrokes">Simulate keystrokes (recommended)</option>
             <option value="clipboard">Clipboard (Cmd+V / Ctrl+V)</option>
+            <option value="xdotoolType">AppleScript paste (System Events)</option>
           </select>
           <p className="text-xs text-gray-500 dark:text-gray-400">
-            How expanded text is inserted. Simulate keystrokes is recommended for best compatibility.
+            How expanded text is inserted. Simulate keystrokes types each character individually.
+            Clipboard copies the snippet and pastes via Cmd+V. AppleScript uses System Events as an alternative paste mechanism.
           </p>
         </div>
 

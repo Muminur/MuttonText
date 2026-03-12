@@ -5,6 +5,7 @@ import { GroupEditor } from "./GroupEditor";
 import { Group, CreateGroupInput } from "@/lib/types";
 import { useGroupStore } from "@/stores/groupStore";
 import { useComboStore } from "@/stores/comboStore";
+import { EVENTS } from "@/lib/events";
 
 /**
  * Sidebar component containing the group list and "Add Group" button.
@@ -21,6 +22,16 @@ export const Sidebar: React.FC = () => {
     loadGroups();
     loadCombos();
   }, [loadGroups, loadCombos]);
+
+  // Listen for menu-triggered new-group event
+  React.useEffect(() => {
+    const handler = () => {
+      setEditingGroup(undefined);
+      setEditorOpen(true);
+    };
+    window.addEventListener(EVENTS.NEW_GROUP, handler);
+    return () => window.removeEventListener(EVENTS.NEW_GROUP, handler);
+  }, []);
 
   const handleSelectGroup = (groupId: string | null) => {
     selectGroup(groupId);
