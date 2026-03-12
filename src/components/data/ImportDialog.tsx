@@ -124,13 +124,13 @@ export const ImportDialog: React.FC<ImportDialogProps> = ({
       aria-modal="true"
       aria-label="Import Combos"
     >
-      <div className="flex w-[480px] flex-col rounded-lg bg-white shadow-xl">
+      <div className="flex w-[480px] flex-col rounded-lg bg-white dark:bg-gray-800 shadow-xl">
         {/* Header */}
-        <div className="flex items-center justify-between border-b px-6 py-4">
-          <h2 className="text-lg font-semibold text-gray-900">Import Combos</h2>
+        <div className="flex items-center justify-between border-b dark:border-gray-700 px-6 py-4">
+          <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Import Combos</h2>
           <button
             onClick={handleClose}
-            className="rounded p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
+            className="rounded p-1 text-gray-400 dark:text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-gray-600 dark:hover:text-gray-300"
             aria-label="Close"
           >
             <XIcon size={18} />
@@ -144,8 +144,8 @@ export const ImportDialog: React.FC<ImportDialogProps> = ({
               <div
                 className={`flex flex-col items-center justify-center rounded-lg border-2 border-dashed p-8 transition-colors ${
                   isDragging
-                    ? "border-blue-500 bg-blue-50"
-                    : "border-gray-300 hover:border-gray-400"
+                    ? "border-blue-500 bg-blue-50 dark:bg-blue-900/20"
+                    : "border-gray-300 dark:border-gray-600 hover:border-gray-400 dark:hover:border-gray-500"
                 }`}
                 onDragOver={(e) => {
                   e.preventDefault();
@@ -155,7 +155,7 @@ export const ImportDialog: React.FC<ImportDialogProps> = ({
                 onDrop={handleDrop}
               >
                 <UploadIcon size={32} className="mb-2 text-gray-400" />
-                <p className="text-sm text-gray-600">
+                <p className="text-sm text-gray-600 dark:text-gray-400">
                   Drag and drop a file here, or
                 </p>
                 <button
@@ -172,7 +172,7 @@ export const ImportDialog: React.FC<ImportDialogProps> = ({
                   className="hidden"
                 />
               </div>
-              <p className="text-xs text-gray-500">
+              <p className="text-xs text-gray-500 dark:text-gray-400">
                 Supported formats: MuttonText JSON, Beeftext JSON/CSV, TextExpander CSV
               </p>
             </div>
@@ -180,39 +180,39 @@ export const ImportDialog: React.FC<ImportDialogProps> = ({
 
           {stage === "preview" && preview && (
             <div className="space-y-4">
-              <div className="flex items-center gap-2 rounded border bg-gray-50 p-3">
-                <FileIcon size={16} className="text-gray-500" />
-                <span className="text-sm text-gray-700">{fileName}</span>
+              <div className="flex items-center gap-2 rounded border dark:border-gray-600 bg-gray-50 dark:bg-gray-700 p-3">
+                <FileIcon size={16} className="text-gray-500 dark:text-gray-400" />
+                <span className="text-sm text-gray-700 dark:text-gray-300">{fileName}</span>
               </div>
               <div className="grid grid-cols-3 gap-3 text-center">
-                <div className="rounded border p-2">
-                  <div className="text-lg font-semibold text-gray-900">
+                <div className="rounded border dark:border-gray-600 p-2">
+                  <div className="text-lg font-semibold text-gray-900 dark:text-gray-100">
                     {preview.comboCount}
                   </div>
-                  <div className="text-xs text-gray-500">Combos</div>
+                  <div className="text-xs text-gray-500 dark:text-gray-400">Combos</div>
                 </div>
-                <div className="rounded border p-2">
-                  <div className="text-lg font-semibold text-gray-900">
+                <div className="rounded border dark:border-gray-600 p-2">
+                  <div className="text-lg font-semibold text-gray-900 dark:text-gray-100">
                     {preview.groupCount}
                   </div>
-                  <div className="text-xs text-gray-500">Groups</div>
+                  <div className="text-xs text-gray-500 dark:text-gray-400">Groups</div>
                 </div>
-                <div className="rounded border p-2">
-                  <div className="text-sm font-medium text-gray-900">
+                <div className="rounded border dark:border-gray-600 p-2">
+                  <div className="text-sm font-medium text-gray-900 dark:text-gray-100">
                     {FORMAT_LABELS[preview.format] ?? preview.format}
                   </div>
-                  <div className="text-xs text-gray-500">Format</div>
+                  <div className="text-xs text-gray-500 dark:text-gray-400">Format</div>
                 </div>
               </div>
 
               <div className="space-y-2">
-                <label className="block text-sm font-medium text-gray-700">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
                   Conflict Resolution
                 </label>
                 <select
                   value={conflict}
                   onChange={(e) => setConflict(e.target.value as ConflictResolution)}
-                  className="block w-full rounded border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
+                  className="block w-full rounded border border-gray-300 dark:border-gray-600 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none dark:bg-gray-700 dark:text-gray-100"
                 >
                   <option value="skip">Skip duplicates</option>
                   <option value="overwrite">Overwrite existing</option>
@@ -225,7 +225,7 @@ export const ImportDialog: React.FC<ImportDialogProps> = ({
           {stage === "importing" && (
             <div className="flex flex-col items-center py-8">
               <div className="h-8 w-8 animate-spin rounded-full border-4 border-blue-600 border-t-transparent" />
-              <p className="mt-3 text-sm text-gray-600">Importing combos...</p>
+              <p className="mt-3 text-sm text-gray-600 dark:text-gray-400">Importing combos...</p>
             </div>
           )}
 
@@ -233,32 +233,32 @@ export const ImportDialog: React.FC<ImportDialogProps> = ({
             <div className="space-y-3">
               <div className="flex items-center gap-2">
                 <CheckCircleIcon size={20} className="text-green-600" />
-                <span className="font-medium text-gray-900">Import Complete</span>
+                <span className="font-medium text-gray-900 dark:text-gray-100">Import Complete</span>
               </div>
               <div className="grid grid-cols-3 gap-3 text-center">
-                <div className="rounded border border-green-200 bg-green-50 p-2">
-                  <div className="text-lg font-semibold text-green-700">
+                <div className="rounded border border-green-200 dark:border-green-800 bg-green-50 dark:bg-green-900/20 p-2">
+                  <div className="text-lg font-semibold text-green-700 dark:text-green-400">
                     {result.importedCount}
                   </div>
-                  <div className="text-xs text-green-600">Imported</div>
+                  <div className="text-xs text-green-600 dark:text-green-500">Imported</div>
                 </div>
-                <div className="rounded border border-yellow-200 bg-yellow-50 p-2">
-                  <div className="text-lg font-semibold text-yellow-700">
+                <div className="rounded border border-yellow-200 dark:border-yellow-800 bg-yellow-50 dark:bg-yellow-900/20 p-2">
+                  <div className="text-lg font-semibold text-yellow-700 dark:text-yellow-400">
                     {result.skippedCount}
                   </div>
-                  <div className="text-xs text-yellow-600">Skipped</div>
+                  <div className="text-xs text-yellow-600 dark:text-yellow-500">Skipped</div>
                 </div>
-                <div className="rounded border border-red-200 bg-red-50 p-2">
-                  <div className="text-lg font-semibold text-red-700">
+                <div className="rounded border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/20 p-2">
+                  <div className="text-lg font-semibold text-red-700 dark:text-red-400">
                     {result.errors.length}
                   </div>
-                  <div className="text-xs text-red-600">Errors</div>
+                  <div className="text-xs text-red-600 dark:text-red-500">Errors</div>
                 </div>
               </div>
               {result.errors.length > 0 && (
-                <div className="max-h-32 overflow-y-auto rounded border border-red-200 bg-red-50 p-2">
+                <div className="max-h-32 overflow-y-auto rounded border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/30 p-2">
                   {result.errors.map((err, i) => (
-                    <p key={i} className="text-xs text-red-700">
+                    <p key={i} className="text-xs text-red-700 dark:text-red-400">
                       {err}
                     </p>
                   ))}
@@ -268,15 +268,15 @@ export const ImportDialog: React.FC<ImportDialogProps> = ({
           )}
 
           {error && (
-            <div className="mt-3 flex items-center gap-2 rounded border border-red-200 bg-red-50 p-2">
-              <AlertCircleIcon size={16} className="text-red-600" />
-              <p className="text-xs text-red-700">{error}</p>
+            <div className="mt-3 flex items-center gap-2 rounded border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/30 p-2">
+              <AlertCircleIcon size={16} className="text-red-600 dark:text-red-400" />
+              <p className="text-xs text-red-700 dark:text-red-400">{error}</p>
             </div>
           )}
         </div>
 
         {/* Footer */}
-        <div className="flex justify-end gap-2 border-t px-6 py-3">
+        <div className="flex justify-end gap-2 border-t dark:border-gray-700 px-6 py-3">
           {stage === "results" ? (
             <button
               onClick={handleClose}
@@ -288,7 +288,7 @@ export const ImportDialog: React.FC<ImportDialogProps> = ({
             <>
               <button
                 onClick={handleClose}
-                className="rounded border border-gray-300 px-4 py-1.5 text-sm text-gray-600 hover:bg-gray-50"
+                className="rounded border border-gray-300 dark:border-gray-600 px-4 py-1.5 text-sm text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
               >
                 Cancel
               </button>

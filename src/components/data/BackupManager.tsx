@@ -108,13 +108,13 @@ export const BackupManager: React.FC<BackupManagerProps> = ({ isOpen, onClose })
       aria-modal="true"
       aria-label="Backup Manager"
     >
-      <div className="flex h-[480px] w-[520px] flex-col rounded-lg bg-white shadow-xl">
+      <div className="flex h-[480px] w-[520px] flex-col rounded-lg bg-white dark:bg-gray-800 shadow-xl">
         {/* Header */}
-        <div className="flex items-center justify-between border-b px-6 py-4">
-          <h2 className="text-lg font-semibold text-gray-900">Backup Manager</h2>
+        <div className="flex items-center justify-between border-b dark:border-gray-700 px-6 py-4">
+          <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Backup Manager</h2>
           <button
             onClick={onClose}
-            className="rounded p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
+            className="rounded p-1 text-gray-400 dark:text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-gray-600 dark:hover:text-gray-300"
             aria-label="Close"
           >
             <XIcon size={18} />
@@ -122,7 +122,7 @@ export const BackupManager: React.FC<BackupManagerProps> = ({ isOpen, onClose })
         </div>
 
         {/* Toolbar */}
-        <div className="flex items-center border-b px-6 py-2">
+        <div className="flex items-center border-b dark:border-gray-700 px-6 py-2">
           <button
             onClick={handleCreate}
             className="flex items-center gap-1.5 rounded bg-blue-600 px-3 py-1.5 text-sm text-white hover:bg-blue-700"
@@ -135,11 +135,11 @@ export const BackupManager: React.FC<BackupManagerProps> = ({ isOpen, onClose })
         {/* Body */}
         <div className="flex-1 overflow-y-auto p-4">
           {loading && (
-            <p className="text-center text-sm text-gray-500">Loading backups...</p>
+            <p className="text-center text-sm text-gray-500 dark:text-gray-400">Loading backups...</p>
           )}
 
           {!loading && backups.length === 0 && (
-            <p className="text-center text-sm text-gray-500">No backups found.</p>
+            <p className="text-center text-sm text-gray-500 dark:text-gray-400">No backups found.</p>
           )}
 
           {!loading && backups.length > 0 && (
@@ -147,13 +147,13 @@ export const BackupManager: React.FC<BackupManagerProps> = ({ isOpen, onClose })
               {backups.map((backup) => (
                 <div
                   key={backup.id}
-                  className="flex items-center justify-between rounded border p-3"
+                  className="flex items-center justify-between rounded border dark:border-gray-700 p-3"
                 >
                   <div className="min-w-0 flex-1">
-                    <p className="text-sm font-medium text-gray-900">
+                    <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
                       {formatDate(backup.timestamp)}
                     </p>
-                    <p className="text-xs text-gray-500">
+                    <p className="text-xs text-gray-500 dark:text-gray-400">
                       {backup.comboCount} combos &middot; {formatSize(backup.sizeBytes)}
                     </p>
                   </div>
@@ -162,7 +162,7 @@ export const BackupManager: React.FC<BackupManagerProps> = ({ isOpen, onClose })
                       onClick={() =>
                         setConfirmAction({ type: "restore", id: backup.id })
                       }
-                      className="rounded p-1.5 text-gray-400 hover:bg-blue-50 hover:text-blue-600"
+                      className="rounded p-1.5 text-gray-400 hover:bg-blue-50 dark:hover:bg-blue-900/30 hover:text-blue-600 dark:hover:text-blue-400"
                       title="Restore"
                     >
                       <RotateCcwIcon size={14} />
@@ -171,7 +171,7 @@ export const BackupManager: React.FC<BackupManagerProps> = ({ isOpen, onClose })
                       onClick={() =>
                         setConfirmAction({ type: "delete", id: backup.id })
                       }
-                      className="rounded p-1.5 text-gray-400 hover:bg-red-50 hover:text-red-600"
+                      className="rounded p-1.5 text-gray-400 hover:bg-red-50 dark:hover:bg-red-900/30 hover:text-red-600 dark:hover:text-red-400"
                       title="Delete"
                     >
                       <TrashIcon size={14} />
@@ -183,25 +183,25 @@ export const BackupManager: React.FC<BackupManagerProps> = ({ isOpen, onClose })
           )}
 
           {error && (
-            <div className="mt-3 rounded border border-red-200 bg-red-50 p-2">
-              <p className="text-xs text-red-700">{error}</p>
+            <div className="mt-3 rounded border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/30 p-2">
+              <p className="text-xs text-red-700 dark:text-red-400">{error}</p>
             </div>
           )}
         </div>
 
         {/* Confirmation overlay */}
         {confirmAction && (
-          <div className="border-t bg-yellow-50 px-6 py-3">
+          <div className="border-t dark:border-gray-700 bg-yellow-50 dark:bg-yellow-900/20 px-6 py-3">
             <div className="flex items-center gap-2">
               <AlertTriangleIcon size={16} className="text-yellow-600" />
-              <p className="flex-1 text-sm text-yellow-800">
+              <p className="flex-1 text-sm text-yellow-800 dark:text-yellow-200">
                 {confirmAction.type === "restore"
                   ? "Restore this backup? Current data will be replaced."
                   : "Delete this backup? This cannot be undone."}
               </p>
               <button
                 onClick={() => setConfirmAction(null)}
-                className="rounded border border-gray-300 px-3 py-1 text-xs text-gray-600 hover:bg-gray-50"
+                className="rounded border border-gray-300 dark:border-gray-600 px-3 py-1 text-xs text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
               >
                 Cancel
               </button>
@@ -224,10 +224,10 @@ export const BackupManager: React.FC<BackupManagerProps> = ({ isOpen, onClose })
         )}
 
         {/* Footer */}
-        <div className="flex justify-end border-t px-6 py-3">
+        <div className="flex justify-end border-t dark:border-gray-700 px-6 py-3">
           <button
             onClick={onClose}
-            className="rounded border border-gray-300 px-4 py-1.5 text-sm text-gray-600 hover:bg-gray-50"
+            className="rounded border border-gray-300 dark:border-gray-600 px-4 py-1.5 text-sm text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
           >
             Close
           </button>

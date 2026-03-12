@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
+import { getCurrentWindow } from "@tauri-apps/api/window";
 import {
   FileIcon,
   EditIcon,
@@ -16,13 +17,16 @@ interface MenuBarProps {
   onOpenBackups?: () => void;
   onNewCombo?: () => void;
   onNewGroup?: () => void;
+  onEnableAll?: () => void;
+  onDisableAll?: () => void;
+  onCheckForUpdates?: () => void;
 }
 
 /**
  * Menu bar component with File, Edit, Combos, Groups, and Help menus.
  * Uses Radix UI DropdownMenu for accessible menu implementation.
  */
-export const MenuBar: React.FC<MenuBarProps> = ({ onOpenPreferences, onOpenImport, onOpenExport, onOpenBackups, onNewCombo, onNewGroup }) => {
+export const MenuBar: React.FC<MenuBarProps> = ({ onOpenPreferences, onOpenImport, onOpenExport, onOpenBackups, onNewCombo, onNewGroup, onEnableAll, onDisableAll, onCheckForUpdates }) => {
   const [aboutOpen, setAboutOpen] = useState(false);
 
   return (
@@ -88,7 +92,7 @@ export const MenuBar: React.FC<MenuBarProps> = ({ onOpenPreferences, onOpenImpor
             <DropdownMenu.Separator className="my-1 h-px bg-gray-200 dark:bg-gray-600" />
             <DropdownMenu.Item
               className="cursor-pointer px-3 py-2 text-sm outline-none hover:bg-gray-100 dark:hover:bg-gray-700 dark:text-gray-100"
-              onSelect={() => console.log("Exit")}
+              onSelect={() => getCurrentWindow().close()}
             >
               Exit
             </DropdownMenu.Item>
@@ -117,32 +121,32 @@ export const MenuBar: React.FC<MenuBarProps> = ({ onOpenPreferences, onOpenImpor
           >
             <DropdownMenu.Item
               className="cursor-pointer px-3 py-2 text-sm outline-none hover:bg-gray-100 dark:hover:bg-gray-700 dark:text-gray-100"
-              onSelect={() => console.log("Undo")}
+              onSelect={() => document.execCommand("undo")}
             >
               Undo
             </DropdownMenu.Item>
             <DropdownMenu.Item
               className="cursor-pointer px-3 py-2 text-sm outline-none hover:bg-gray-100 dark:hover:bg-gray-700 dark:text-gray-100"
-              onSelect={() => console.log("Redo")}
+              onSelect={() => document.execCommand("redo")}
             >
               Redo
             </DropdownMenu.Item>
             <DropdownMenu.Separator className="my-1 h-px bg-gray-200 dark:bg-gray-600" />
             <DropdownMenu.Item
               className="cursor-pointer px-3 py-2 text-sm outline-none hover:bg-gray-100 dark:hover:bg-gray-700 dark:text-gray-100"
-              onSelect={() => console.log("Cut")}
+              onSelect={() => document.execCommand("cut")}
             >
               Cut
             </DropdownMenu.Item>
             <DropdownMenu.Item
               className="cursor-pointer px-3 py-2 text-sm outline-none hover:bg-gray-100 dark:hover:bg-gray-700 dark:text-gray-100"
-              onSelect={() => console.log("Copy")}
+              onSelect={() => document.execCommand("copy")}
             >
               Copy
             </DropdownMenu.Item>
             <DropdownMenu.Item
               className="cursor-pointer px-3 py-2 text-sm outline-none hover:bg-gray-100 dark:hover:bg-gray-700 dark:text-gray-100"
-              onSelect={() => console.log("Paste")}
+              onSelect={() => document.execCommand("paste")}
             >
               Paste
             </DropdownMenu.Item>
@@ -171,13 +175,13 @@ export const MenuBar: React.FC<MenuBarProps> = ({ onOpenPreferences, onOpenImpor
           >
             <DropdownMenu.Item
               className="cursor-pointer px-3 py-2 text-sm outline-none hover:bg-gray-100 dark:hover:bg-gray-700 dark:text-gray-100"
-              onSelect={() => console.log("Enable All")}
+              onSelect={() => onEnableAll?.()}
             >
               Enable All
             </DropdownMenu.Item>
             <DropdownMenu.Item
               className="cursor-pointer px-3 py-2 text-sm outline-none hover:bg-gray-100 dark:hover:bg-gray-700 dark:text-gray-100"
-              onSelect={() => console.log("Disable All")}
+              onSelect={() => onDisableAll?.()}
             >
               Disable All
             </DropdownMenu.Item>
@@ -241,7 +245,7 @@ export const MenuBar: React.FC<MenuBarProps> = ({ onOpenPreferences, onOpenImpor
             </DropdownMenu.Item>
             <DropdownMenu.Item
               className="cursor-pointer px-3 py-2 text-sm outline-none hover:bg-gray-100 dark:hover:bg-gray-700 dark:text-gray-100"
-              onSelect={() => console.log("Check for Updates")}
+              onSelect={() => onCheckForUpdates?.()}
             >
               Check for Updates
             </DropdownMenu.Item>

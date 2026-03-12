@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import { XIcon } from "lucide-react";
 import type { Preferences } from "@/lib/types";
 import { usePreferencesStore } from "@/stores/preferencesStore";
@@ -32,12 +32,32 @@ export const PreferencesDialog: React.FC<PreferencesDialogProps> = ({ isOpen, on
   const [activeTab, setActiveTab] = useState<TabId>("behavior");
   const [draft, setDraft] = useState<Preferences | null>(null);
   const [saving, setSaving] = useState(false);
+  const savedThemeRef = useRef<string | undefined>();
 
   useEffect(() => {
     if (isOpen) {
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+      savedThemeRef.current = preferences?.theme;
       loadPreferences();
     }
+  // intentionally omit preferences?.theme — only capture on open
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen, loadPreferences]);
+
+  const handleCancel = useCallback(() => {
+    const root = document.documentElement;
+    if (savedThemeRef.current === "dark") {
+      root.classList.add("dark");
+    } else if (savedThemeRef.current === "light") {
+      root.classList.remove("dark");
+    } else {
+      // "system" or undefined — respect OS preference
+      const isDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+      if (isDark) root.classList.add("dark");
+      else root.classList.remove("dark");
+    }
+    onClose();
+  }, [onClose]);
 
   useEffect(() => {
     if (preferences) {
@@ -70,7 +90,7 @@ export const PreferencesDialog: React.FC<PreferencesDialogProps> = ({ isOpen, on
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "Escape") {
-      onClose();
+      handleCancel();
     }
   };
 
@@ -105,7 +125,7 @@ export const PreferencesDialog: React.FC<PreferencesDialogProps> = ({ isOpen, on
         <div className="flex items-center justify-between border-b border-gray-200 dark:border-gray-700 px-6 py-4">
           <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Preferences</h2>
           <button
-            onClick={onClose}
+            onClick={handleCancel}
             className="rounded p-1 text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-gray-600 dark:hover:text-gray-300"
             aria-label="Close"
           >
@@ -156,7 +176,7 @@ export const PreferencesDialog: React.FC<PreferencesDialogProps> = ({ isOpen, on
           </button>
           <div className="flex gap-2">
             <button
-              onClick={onClose}
+              onClick={handleCancel}
               className="rounded border border-gray-300 dark:border-gray-600 px-4 py-1.5 text-sm text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700"
             >
               Cancel
