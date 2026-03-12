@@ -6,6 +6,7 @@ import { ComboList } from "./components/combo/ComboList";
 import { PreferencesDialog } from "./components/preferences/PreferencesDialog";
 import { ImportDialog, ExportDialog, BackupManager } from "./components/data";
 import { usePreferencesStore } from "./stores/preferencesStore";
+import { useComboStore } from "./stores/comboStore";
 import { useTheme } from "./hooks/useTheme";
 import { EVENTS } from "./lib/events";
 
@@ -15,6 +16,7 @@ function App() {
   const [exportOpen, setExportOpen] = useState(false);
   const [backupsOpen, setBackupsOpen] = useState(false);
   const { preferences, loadPreferences } = usePreferencesStore();
+  const { combos, toggleCombo: toggleSingleCombo } = useComboStore();
   useTheme(preferences?.theme);
 
   useEffect(() => {
@@ -41,6 +43,24 @@ function App() {
     window.dispatchEvent(new CustomEvent(EVENTS.NEW_GROUP));
   }, []);
 
+  const handleEnableAll = useCallback(async () => {
+    const disabledCombos = combos.filter(c => !c.enabled);
+    for (const combo of disabledCombos) {
+      await toggleSingleCombo(combo.id);
+    }
+  }, [combos, toggleSingleCombo]);
+
+  const handleDisableAll = useCallback(async () => {
+    const enabledCombos = combos.filter(c => c.enabled);
+    for (const combo of enabledCombos) {
+      await toggleSingleCombo(combo.id);
+    }
+  }, [combos, toggleSingleCombo]);
+
+  const handleCheckForUpdates = useCallback(() => {
+    setPreferencesOpen(true);
+  }, []);
+
   return (
     <MainLayout
       onOpenPreferences={() => setPreferencesOpen(true)}
@@ -49,6 +69,9 @@ function App() {
       onOpenBackups={() => setBackupsOpen(true)}
       onNewCombo={handleNewCombo}
       onNewGroup={handleNewGroup}
+      onEnableAll={handleEnableAll}
+      onDisableAll={handleDisableAll}
+      onCheckForUpdates={handleCheckForUpdates}
     >
       <AccessibilityBanner />
       <ContentArea>

@@ -61,13 +61,13 @@ export const ExportDialog: React.FC<ExportDialogProps> = ({ isOpen, onClose }) =
       aria-modal="true"
       aria-label="Export Combos"
     >
-      <div className="flex w-[400px] flex-col rounded-lg bg-white shadow-xl">
+      <div className="flex w-[400px] flex-col rounded-lg bg-white dark:bg-gray-800 shadow-xl">
         {/* Header */}
-        <div className="flex items-center justify-between border-b px-6 py-4">
-          <h2 className="text-lg font-semibold text-gray-900">Export Combos</h2>
+        <div className="flex items-center justify-between border-b dark:border-gray-700 px-6 py-4">
+          <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Export Combos</h2>
           <button
             onClick={handleClose}
-            className="rounded p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
+            className="rounded p-1 text-gray-400 dark:text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-gray-600 dark:hover:text-gray-300"
             aria-label="Close"
           >
             <XIcon size={18} />
@@ -79,21 +79,21 @@ export const ExportDialog: React.FC<ExportDialogProps> = ({ isOpen, onClose }) =
           {success ? (
             <div className="flex flex-col items-center py-4">
               <CheckCircleIcon size={32} className="text-green-600" />
-              <p className="mt-2 font-medium text-gray-900">Export Successful</p>
-              <p className="mt-1 text-sm text-gray-500">
+              <p className="mt-2 font-medium text-gray-900 dark:text-gray-100">Export Successful</p>
+              <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
                 Your combos have been exported.
               </p>
             </div>
           ) : (
             <div className="space-y-4">
               <div className="space-y-2">
-                <label className="block text-sm font-medium text-gray-700">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
                   Export Format
                 </label>
                 {FORMATS.map((f) => (
                   <label
                     key={f.value}
-                    className="flex cursor-pointer items-center gap-3 rounded border p-3 hover:bg-gray-50"
+                    className="flex cursor-pointer items-center gap-3 rounded border dark:border-gray-600 p-3 hover:bg-gray-50 dark:hover:bg-gray-700"
                   >
                     <input
                       type="radio"
@@ -104,10 +104,10 @@ export const ExportDialog: React.FC<ExportDialogProps> = ({ isOpen, onClose }) =
                       className="h-4 w-4 text-blue-600"
                     />
                     <div>
-                      <span className="text-sm font-medium text-gray-700">
+                      <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
                         {f.label}
                       </span>
-                      <span className="ml-2 text-xs text-gray-400">{f.extension}</span>
+                      <span className="ml-2 text-xs text-gray-400 dark:text-gray-500">{f.extension}</span>
                     </div>
                   </label>
                 ))}
@@ -116,14 +116,14 @@ export const ExportDialog: React.FC<ExportDialogProps> = ({ isOpen, onClose }) =
           )}
 
           {error && (
-            <div className="mt-3 rounded border border-red-200 bg-red-50 p-2">
-              <p className="text-xs text-red-700">{error}</p>
+            <div className="mt-3 rounded border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/30 p-2">
+              <p className="text-xs text-red-700 dark:text-red-400">{error}</p>
             </div>
           )}
         </div>
 
         {/* Footer */}
-        <div className="flex justify-end gap-2 border-t px-6 py-3">
+        <div className="flex justify-end gap-2 border-t dark:border-gray-700 px-6 py-3">
           {success ? (
             <button
               onClick={handleClose}
@@ -135,7 +135,7 @@ export const ExportDialog: React.FC<ExportDialogProps> = ({ isOpen, onClose }) =
             <>
               <button
                 onClick={handleClose}
-                className="rounded border border-gray-300 px-4 py-1.5 text-sm text-gray-600 hover:bg-gray-50"
+                className="rounded border border-gray-300 dark:border-gray-600 px-4 py-1.5 text-sm text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
               >
                 Cancel
               </button>

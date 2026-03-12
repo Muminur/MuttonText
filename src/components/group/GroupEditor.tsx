@@ -66,16 +66,16 @@ export const GroupEditor: React.FC<GroupEditorProps> = ({
       <Dialog.Portal>
         <Dialog.Overlay className="fixed inset-0 bg-black/50" />
         <Dialog.Content
-          className="fixed left-1/2 top-1/2 w-full max-w-md -translate-x-1/2 -translate-y-1/2 rounded-lg bg-white p-6 shadow-lg"
+          className="fixed left-1/2 top-1/2 w-full max-w-md -translate-x-1/2 -translate-y-1/2 rounded-lg bg-white dark:bg-gray-800 p-6 shadow-lg"
           data-testid="group-editor-dialog"
         >
           <div className="mb-4 flex items-center justify-between">
-            <Dialog.Title className="text-lg font-semibold">
+            <Dialog.Title className="text-lg font-semibold text-gray-900 dark:text-gray-100">
               {group ? "Edit Group" : "New Group"}
             </Dialog.Title>
             <Dialog.Close asChild>
               <button
-                className="rounded p-1 hover:bg-gray-100"
+                className="rounded p-1 text-gray-400 dark:text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700"
                 aria-label="Close"
               >
                 <X size={20} />
@@ -86,7 +86,7 @@ export const GroupEditor: React.FC<GroupEditorProps> = ({
           <div className="space-y-4">
             {/* Name field */}
             <div>
-              <label htmlFor="group-name" className="mb-1 block text-sm font-medium">
+              <label htmlFor="group-name" className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
                 Name <span className="text-red-500">*</span>
               </label>
               <input
@@ -94,8 +94,8 @@ export const GroupEditor: React.FC<GroupEditorProps> = ({
                 type="text"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                className={`w-full rounded border px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-500 ${
-                  errors.name ? "border-red-500" : "border-gray-300"
+                className={`w-full rounded border px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 ${
+                  errors.name ? "border-red-500 dark:border-red-500" : "border-gray-300 dark:border-gray-600"
                 }`}
                 placeholder="Enter group name"
                 data-testid="group-name-input"
@@ -107,14 +107,14 @@ export const GroupEditor: React.FC<GroupEditorProps> = ({
 
             {/* Description field */}
             <div>
-              <label htmlFor="group-description" className="mb-1 block text-sm font-medium">
+              <label htmlFor="group-description" className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
                 Description
               </label>
               <textarea
                 id="group-description"
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
-                className="w-full rounded border border-gray-300 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full rounded border border-gray-300 dark:border-gray-600 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500"
                 placeholder="Optional description"
                 rows={3}
                 data-testid="group-description-input"
@@ -126,7 +126,7 @@ export const GroupEditor: React.FC<GroupEditorProps> = ({
           <div className="mt-6 flex justify-end gap-2">
             <button
               onClick={handleCancel}
-              className="rounded border border-gray-300 px-4 py-2 text-sm hover:bg-gray-100"
+              className="rounded border border-gray-300 dark:border-gray-600 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
               data-testid="group-cancel-button"
             >
               Cancel
