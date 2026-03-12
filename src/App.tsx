@@ -5,16 +5,15 @@ import { AccessibilityBanner } from "./components/common/AccessibilityBanner";
 import { ComboList } from "./components/combo/ComboList";
 import { PreferencesDialog } from "./components/preferences/PreferencesDialog";
 import { ImportDialog, ExportDialog, BackupManager } from "./components/data";
-import { useGroupStore } from "./stores/groupStore";
 import { usePreferencesStore } from "./stores/preferencesStore";
 import { useTheme } from "./hooks/useTheme";
+import { EVENTS } from "./lib/events";
 
 function App() {
   const [preferencesOpen, setPreferencesOpen] = useState(false);
   const [importOpen, setImportOpen] = useState(false);
   const [exportOpen, setExportOpen] = useState(false);
   const [backupsOpen, setBackupsOpen] = useState(false);
-  const { selectedGroupId } = useGroupStore();
   const { preferences, loadPreferences } = usePreferencesStore();
   useTheme(preferences?.theme);
 
@@ -34,24 +33,26 @@ function App() {
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [handleKeyDown]);
 
+  const handleNewCombo = useCallback(() => {
+    window.dispatchEvent(new CustomEvent(EVENTS.NEW_COMBO));
+  }, []);
+
+  const handleNewGroup = useCallback(() => {
+    window.dispatchEvent(new CustomEvent(EVENTS.NEW_GROUP));
+  }, []);
+
   return (
     <MainLayout
       onOpenPreferences={() => setPreferencesOpen(true)}
       onOpenImport={() => setImportOpen(true)}
       onOpenExport={() => setExportOpen(true)}
       onOpenBackups={() => setBackupsOpen(true)}
+      onNewCombo={handleNewCombo}
+      onNewGroup={handleNewGroup}
     >
       <AccessibilityBanner />
       <ContentArea>
-        {selectedGroupId ? (
-          <ComboList />
-        ) : (
-          <div className="flex h-full items-center justify-center">
-            <h1 className="text-2xl font-bold text-gray-500">
-              Select a group to view combos
-            </h1>
-          </div>
-        )}
+        <ComboList />
       </ContentArea>
 
       <PreferencesDialog

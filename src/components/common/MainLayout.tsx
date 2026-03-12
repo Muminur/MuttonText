@@ -8,6 +8,8 @@ interface MainLayoutProps {
   onOpenImport?: () => void;
   onOpenExport?: () => void;
   onOpenBackups?: () => void;
+  onNewCombo?: () => void;
+  onNewGroup?: () => void;
 }
 
 const SIDEBAR_MIN_WIDTH = 180;
@@ -20,10 +22,14 @@ const SIDEBAR_WIDTH_KEY = "muttontext-sidebar-width";
  * Uses CSS Grid for layout: menu bar at top, sidebar on left, content on right.
  * Sidebar is resizable with min/max width constraints and persists size in localStorage.
  */
-export const MainLayout: React.FC<MainLayoutProps> = ({ children, onOpenPreferences, onOpenImport, onOpenExport, onOpenBackups }) => {
+export const MainLayout: React.FC<MainLayoutProps> = ({ children, onOpenPreferences, onOpenImport, onOpenExport, onOpenBackups, onNewCombo, onNewGroup }) => {
   const [sidebarWidth, setSidebarWidth] = React.useState(() => {
     const saved = localStorage.getItem(SIDEBAR_WIDTH_KEY);
-    return saved ? parseInt(saved, 10) : SIDEBAR_DEFAULT_WIDTH;
+    if (saved) {
+      const parsed = parseInt(saved, 10);
+      return isNaN(parsed) ? SIDEBAR_DEFAULT_WIDTH : Math.max(SIDEBAR_MIN_WIDTH, Math.min(SIDEBAR_MAX_WIDTH, parsed));
+    }
+    return SIDEBAR_DEFAULT_WIDTH;
   });
 
   const [isResizing, setIsResizing] = React.useState(false);
@@ -45,7 +51,10 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ children, onOpenPreferen
 
     const handleMouseUp = () => {
       setIsResizing(false);
-      localStorage.setItem(SIDEBAR_WIDTH_KEY, sidebarWidth.toString());
+      setSidebarWidth((current) => {
+        localStorage.setItem(SIDEBAR_WIDTH_KEY, current.toString());
+        return current;
+      });
     };
 
     document.addEventListener("mousemove", handleMouseMove);
@@ -59,7 +68,7 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ children, onOpenPreferen
 
   return (
     <div className="flex h-screen flex-col bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100">
-      <MenuBar onOpenPreferences={onOpenPreferences} onOpenImport={onOpenImport} onOpenExport={onOpenExport} onOpenBackups={onOpenBackups} />
+      <MenuBar onOpenPreferences={onOpenPreferences} onOpenImport={onOpenImport} onOpenExport={onOpenExport} onOpenBackups={onOpenBackups} onNewCombo={onNewCombo} onNewGroup={onNewGroup} />
 
       {/* Main content area with resizable sidebar */}
       <div className="flex flex-1 overflow-hidden">

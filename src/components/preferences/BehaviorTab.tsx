@@ -42,19 +42,6 @@ export const BehaviorTab: React.FC<BehaviorTabProps> = ({ preferences, onChange 
           </div>
         </label>
 
-        <label className="flex items-center gap-3">
-          <input
-            type="checkbox"
-            checked={preferences.startAtLogin}
-            onChange={(e) => update({ startAtLogin: e.target.checked })}
-            className="h-4 w-4 rounded border-gray-300 text-blue-600"
-          />
-          <div>
-            <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Start at login</span>
-            <p className="text-xs text-gray-500 dark:text-gray-400">Automatically launch MuttonText when you log in</p>
-          </div>
-        </label>
-
         <div className="space-y-2">
           <label className="block text-sm font-medium text-gray-700">
             Default matching mode
