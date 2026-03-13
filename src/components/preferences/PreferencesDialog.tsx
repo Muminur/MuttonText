@@ -60,10 +60,10 @@ export const PreferencesDialog: React.FC<PreferencesDialogProps> = ({ isOpen, on
   }, [onClose]);
 
   useEffect(() => {
-    if (preferences) {
+    if (isOpen && preferences) {
       setDraft({ ...preferences });
     }
-  }, [preferences]);
+  }, [isOpen, preferences]);
 
   if (!isOpen) return null;
 
