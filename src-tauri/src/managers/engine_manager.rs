@@ -291,7 +291,7 @@ impl EngineManager {
                 // PHASE 1: Check for match (input is NOT suppressed)
                 if let Some(match_result) = Self::check_for_match(&mut state, buffer) {
                     // PHASE 2: Match found! Suppress input via lock-free AtomicBool.
-                    // This prevents the hook from capturing xdotool keystrokes.
+                    // This prevents the hook from capturing keystrokes during expansion.
                     state.input_manager.suppress();
 
                     tracing::info!(
@@ -301,29 +301,40 @@ impl EngineManager {
                         match_result.snippet.len()
                     );
 
-                    // PHASE 3: Perform the actual substitution (while suppressed)
-                    if let Some(expansion_result) = Self::perform_expansion(&mut state, match_result) {
-                        tracing::info!(
-                            "Expanded combo: '{}' → {} chars",
-                            expansion_result.keyword,
-                            expansion_result.snippet.len()
-                        );
+                    // Drop the lock before spawning to avoid holding it across threads
+                    drop(state);
 
-                        if let Some(ref cb) = combo_used_cb {
-                            cb(expansion_result.combo_id);
+                    // PHASE 3: Perform expansion on a background thread to unblock
+                    // the IOHIDManager's CFRunLoop. CGEventPost with modifier keys
+                    // requires the event pipeline to be unblocked for proper delivery.
+                    let inner_for_expansion = inner_clone.clone();
+                    let combo_used_cb_clone = combo_used_cb.clone();
+                    std::thread::spawn(move || {
+                        // Small delay to let the callback return and unblock the
+                        // CFRunLoop before posting CGEvents
+                        std::thread::sleep(std::time::Duration::from_millis(5));
+
+                        if let Ok(mut state) = inner_for_expansion.lock() {
+                            if let Some(expansion_result) = Self::perform_expansion(&mut state, match_result) {
+                                tracing::info!(
+                                    "Expanded combo: '{}' → {} chars",
+                                    expansion_result.keyword,
+                                    expansion_result.snippet.len()
+                                );
+
+                                if let Some(ref cb) = combo_used_cb_clone {
+                                    cb(expansion_result.combo_id);
+                                }
+                            }
+
+                            // PHASE 4: Unsuppress AFTER a delay on a background thread.
+                            // Queued events from the hook are discarded while suppressed,
+                            // preventing re-triggering if the snippet contains the keyword.
+                            state.input_manager.unsuppress_after(
+                                std::time::Duration::from_millis(500)
+                            );
                         }
-                    }
-
-                    // PHASE 4: Unsuppress AFTER a delay on a background thread.
-                    // This is critical: the callback runs on the rdev listener thread.
-                    // xdotool events are queued while we're blocked here. When we return,
-                    // the rdev thread processes those queued events. If we unsuppress now,
-                    // those events get captured → buffer accumulates snippet text →
-                    // re-triggers if snippet contains the keyword → infinite loop.
-                    // By unsuppressing on a timer thread, queued events are discarded first.
-                    state.input_manager.unsuppress_after(
-                        std::time::Duration::from_millis(500)
-                    );
+                    });
                 }
             }
         });

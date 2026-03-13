@@ -278,10 +278,9 @@ pub fn insert_via_clipboard_macos<P: ClipboardProvider>(
         fn CFRelease(cf: *const c_void);
     }
 
-    const HID_SYSTEM_STATE: i32 = 1;
+    const PRIVATE_STATE: i32 = -1;      // kCGEventSourceStatePrivate
     const HID_EVENT_TAP: u32 = 0;
     const V_KEYCODE: u16 = 9;           // macOS virtual keycode for 'v'
-    const CMD_LEFT_KEYCODE: u16 = 55;   // macOS virtual keycode for Left Command
     const CMD_FLAG: u64 = 0x00100000;   // kCGEventFlagMaskCommand
 
     // Preserve current clipboard
@@ -291,22 +290,12 @@ pub fn insert_via_clipboard_macos<P: ClipboardProvider>(
     clipboard_mgr.write(text)?;
 
     // Delay to ensure clipboard content is committed to the pasteboard
-    std::thread::sleep(std::time::Duration::from_millis(20));
+    std::thread::sleep(std::time::Duration::from_millis(50));
 
     unsafe {
-        let source = CGEventSourceCreate(HID_SYSTEM_STATE);
+        let source = CGEventSourceCreate(PRIVATE_STATE);
 
-        // 1. Command key down
-        let cmd_down = CGEventCreateKeyboardEvent(source, CMD_LEFT_KEYCODE, true);
-        if !cmd_down.is_null() {
-            CGEventSetFlags(cmd_down, CMD_FLAG);
-            CGEventPost(HID_EVENT_TAP, cmd_down);
-            CFRelease(cmd_down as *const c_void);
-        }
-
-        std::thread::sleep(std::time::Duration::from_millis(5));
-
-        // 2. V key down (Command still held)
+        // V key down with Command flag — macOS reads flags from the event itself
         let v_down = CGEventCreateKeyboardEvent(source, V_KEYCODE, true);
         if !v_down.is_null() {
             CGEventSetFlags(v_down, CMD_FLAG);
@@ -314,24 +303,14 @@ pub fn insert_via_clipboard_macos<P: ClipboardProvider>(
             CFRelease(v_down as *const c_void);
         }
 
-        std::thread::sleep(std::time::Duration::from_millis(5));
+        std::thread::sleep(std::time::Duration::from_millis(10));
 
-        // 3. V key up (Command still held)
+        // V key up — clear modifier flags
         let v_up = CGEventCreateKeyboardEvent(source, V_KEYCODE, false);
         if !v_up.is_null() {
-            CGEventSetFlags(v_up, CMD_FLAG);
+            CGEventSetFlags(v_up, 0);
             CGEventPost(HID_EVENT_TAP, v_up);
             CFRelease(v_up as *const c_void);
-        }
-
-        std::thread::sleep(std::time::Duration::from_millis(5));
-
-        // 4. Command key up
-        let cmd_up = CGEventCreateKeyboardEvent(source, CMD_LEFT_KEYCODE, false);
-        if !cmd_up.is_null() {
-            CGEventSetFlags(cmd_up, 0);
-            CGEventPost(HID_EVENT_TAP, cmd_up);
-            CFRelease(cmd_up as *const c_void);
         }
 
         if !source.is_null() {
@@ -567,20 +546,58 @@ pub fn insert_via_osascript_paste_macos(
     }
 
     // Delay to ensure clipboard content is committed
-    std::thread::sleep(std::time::Duration::from_millis(20));
+    std::thread::sleep(std::time::Duration::from_millis(50));
 
-    // Use osascript to send Cmd+V via System Events
-    let output = std::process::Command::new("osascript")
-        .arg("-e")
-        .arg("tell application \"System Events\" to keystroke \"v\" using command down")
-        .output()
-        .map_err(|e| SubstitutionError::SimulationFailed(format!("osascript failed: {}", e)))?;
+    // Use CGEvent to paste (same as clipboard method — more reliable than osascript)
+    use std::ffi::c_void;
 
-    if !output.status.success() {
-        let stderr = String::from_utf8_lossy(&output.stderr);
-        return Err(SubstitutionError::SimulationFailed(
-            format!("osascript error: {}", stderr),
-        ));
+    type CGEventRef = *mut c_void;
+    type CGEventSourceRef = *mut c_void;
+
+    #[link(name = "CoreGraphics", kind = "framework")]
+    extern "C" {
+        fn CGEventSourceCreate(state_id: i32) -> CGEventSourceRef;
+        fn CGEventCreateKeyboardEvent(
+            source: CGEventSourceRef,
+            virtual_key: u16,
+            key_down: bool,
+        ) -> CGEventRef;
+        fn CGEventSetFlags(event: CGEventRef, flags: u64);
+        fn CGEventPost(tap: u32, event: CGEventRef);
+    }
+
+    #[link(name = "CoreFoundation", kind = "framework")]
+    extern "C" {
+        fn CFRelease(cf: *const c_void);
+    }
+
+    const PRIVATE_STATE: i32 = -1;      // kCGEventSourceStatePrivate
+    const HID_EVENT_TAP: u32 = 0;
+    const V_KEYCODE: u16 = 9;
+    const CMD_FLAG: u64 = 0x00100000;   // kCGEventFlagMaskCommand
+
+    unsafe {
+        let source = CGEventSourceCreate(PRIVATE_STATE);
+
+        let v_down = CGEventCreateKeyboardEvent(source, V_KEYCODE, true);
+        if !v_down.is_null() {
+            CGEventSetFlags(v_down, CMD_FLAG);
+            CGEventPost(HID_EVENT_TAP, v_down);
+            CFRelease(v_down as *const c_void);
+        }
+
+        std::thread::sleep(std::time::Duration::from_millis(10));
+
+        let v_up = CGEventCreateKeyboardEvent(source, V_KEYCODE, false);
+        if !v_up.is_null() {
+            CGEventSetFlags(v_up, 0);
+            CGEventPost(HID_EVENT_TAP, v_up);
+            CFRelease(v_up as *const c_void);
+        }
+
+        if !source.is_null() {
+            CFRelease(source as *const c_void);
+        }
     }
 
     // Wait for paste to complete

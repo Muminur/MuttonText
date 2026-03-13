@@ -8,6 +8,7 @@ use tauri_plugin_autostart::ManagerExt;
 use crate::managers::preferences_manager::{PreferencesError, PreferencesManager};
 use crate::models::preferences::Preferences;
 
+use super::engine_commands::EngineState;
 use super::error::CommandError;
 
 /// Tauri-managed state wrapper for PreferencesManager.
@@ -61,6 +62,7 @@ pub fn update_preferences(
     preferences: Preferences,
     app: AppHandle,
     state: State<'_, PreferencesState>,
+    engine_state: State<'_, EngineState>,
 ) -> Result<(), CommandError> {
     let mut mgr = lock_prefs(&state)?;
     mgr.update(preferences.clone()).map_err(CommandError::from)?;
@@ -71,13 +73,36 @@ pub fn update_preferences(
     } else {
         let _ = autolaunch.disable();
     }
+    // Apply preferences to the running expansion engine immediately
+    let engine = engine_state.engine.lock().map_err(|_| CommandError {
+        code: "LOCK_ERROR".to_string(),
+        message: "Failed to acquire engine lock".to_string(),
+    })?;
+    engine.apply_preferences(&preferences).map_err(|e| CommandError {
+        code: "ENGINE_ERROR".to_string(),
+        message: format!("Failed to apply preferences to engine: {}", e),
+    })?;
     Ok(())
 }
 
 #[tauri::command]
-pub fn reset_preferences(state: State<'_, PreferencesState>) -> Result<(), CommandError> {
+pub fn reset_preferences(
+    state: State<'_, PreferencesState>,
+    engine_state: State<'_, EngineState>,
+) -> Result<(), CommandError> {
     let mut mgr = lock_prefs(&state)?;
-    mgr.reset_to_defaults().map_err(CommandError::from)
+    mgr.reset_to_defaults().map_err(CommandError::from)?;
+    // Apply default preferences to the running engine
+    let defaults = mgr.get().clone();
+    let engine = engine_state.engine.lock().map_err(|_| CommandError {
+        code: "LOCK_ERROR".to_string(),
+        message: "Failed to acquire engine lock".to_string(),
+    })?;
+    engine.apply_preferences(&defaults).map_err(|e| CommandError {
+        code: "ENGINE_ERROR".to_string(),
+        message: format!("Failed to apply preferences to engine: {}", e),
+    })?;
+    Ok(())
 }
 
 #[tauri::command]
