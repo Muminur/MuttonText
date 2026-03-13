@@ -82,6 +82,9 @@ export const GroupEditor: React.FC<GroupEditorProps> = ({
               </button>
             </Dialog.Close>
           </div>
+          <Dialog.Description className="sr-only">
+            {group ? "Edit an existing group" : "Create a new group"}
+          </Dialog.Description>
 
           <div className="space-y-4">
             {/* Name field */}
